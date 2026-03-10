@@ -1,0 +1,55 @@
+name: fpteen
+description: "FPTeen - Đặt đồ online tại căng tin trường FPT"
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.10.4
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.8
+
+  # Backend
+  supabase_flutter: ^2.8.0
+
+  # State management
+  flutter_riverpod: ^2.6.1
+
+  # Navigation
+  go_router: ^14.6.2
+
+  # QR code
+  qr_flutter: ^4.1.0
+  mobile_scanner: ^6.0.7
+
+  # Payment WebView
+  webview_flutter: ^4.10.0
+
+  # HTTP (payment Edge Function calls)
+  dio: ^5.7.0
+
+  # Secure storage for token
+  flutter_secure_storage: ^9.2.4
+
+  # Image loading & caching
+  cached_network_image: ^3.4.1
+
+  # Formatting (VNĐ, date)
+  intl: ^0.20.1
+
+  # Image upload (canteen menu)
+  image_picker: ^1.1.2
+
+  # URL launcher (open payment page fallback)
+  url_launcher: ^6.3.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
