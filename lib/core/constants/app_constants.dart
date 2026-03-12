@@ -31,6 +31,8 @@ class AppConstants {
   static const String gatewayVnpay = 'vnpay';
   static const String gatewayMomo = 'momo';
   static const String gatewayZalopay = 'zalopay';
+
+  static const String googleWebClientId = '1001949644556-2lbr7i544mmrmctt0kb3jds97ub5jsnq.apps.googleusercontent.com';
 }
 
 

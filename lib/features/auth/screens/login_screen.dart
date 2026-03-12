@@ -30,6 +30,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         .signIn(_emailCtrl.text.trim(), _passwordCtrl.text);
   }
 
+  Future<void> _signInWithGoogle() async {
+    await ref.read(authNotifierProvider.notifier).signInWithGoogle();
+  }
+
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authNotifierProvider);
@@ -43,6 +47,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             backgroundColor: theme.colorScheme.error,
           ),
         );
+        ref.read(authNotifierProvider.notifier).clearError();
       }
     });
 
@@ -66,8 +71,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         color: theme.colorScheme.primary,
                         borderRadius: BorderRadius.circular(20),
                       ),
-                      child: const Icon(Icons.restaurant_menu,
-                          size: 44, color: Colors.white),
+                      child: const Icon(
+                        Icons.restaurant_menu,
+                        size: 44,
+                        color: Colors.white,
+                      ),
                     ),
                     const SizedBox(height: 16),
                     Text(
@@ -93,6 +101,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       ?.copyWith(fontWeight: FontWeight.w700),
                 ),
                 const SizedBox(height: 24),
+                // Email field
                 TextFormField(
                   controller: _emailCtrl,
                   keyboardType: TextInputType.emailAddress,
@@ -108,6 +117,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   },
                 ),
                 const SizedBox(height: 16),
+                // Password field
                 TextFormField(
                   controller: _passwordCtrl,
                   obscureText: _obscurePassword,
@@ -130,24 +140,92 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     return null;
                   },
                 ),
-                const SizedBox(height: 32),
+                // Forgot password link
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: () => context.push('/forgot-password'),
+                    child: const Text('Quên mật khẩu?'),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                // Login button
                 ElevatedButton(
                   onPressed: authState.isLoading ? null : _submit,
                   child: authState.isLoading
                       ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(
-                              color: Colors.white, strokeWidth: 2),
-                        )
+                    height: 20,
+                    width: 20,
+                    child: CircularProgressIndicator(
+                        color: Colors.white, strokeWidth: 2),
+                  )
                       : const Text('Đăng nhập'),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 24),
+                // Divider with "Hoặc"
+                Row(
+                  children: [
+                    Expanded(child: Divider(color: Colors.grey.shade300)),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Text(
+                        'Hoặc',
+                        style: TextStyle(color: Colors.grey.shade600),
+                      ),
+                    ),
+                    Expanded(child: Divider(color: Colors.grey.shade300)),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                // Google Sign-In Button
+                OutlinedButton.icon(
+                  onPressed: authState.isLoading ? null : _signInWithGoogle,
+                  icon: Image.network(
+                    'https://www.gstatic.com/images/branding/googleg/2x/googleg_standard_color_128dp.png',
+                    height: 24,
+                    width: 24,
+                    errorBuilder: (context, error, stackTrace) => Container(
+                      height: 24,
+                      width: 24,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade200,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.g_mobiledata,
+                        color: Colors.grey,
+                        size: 24,
+                      ),
+                    ),
+                  ),
+                  label: Text(
+                    'Đăng nhập với Google',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.grey.shade700,
+                    ),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    side: BorderSide(color: Colors.grey.shade300, width: 1.5),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    backgroundColor: Colors.white,
+                    foregroundColor: Colors.black87,
+                    elevation: 0,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                // Register link
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text('Chưa có tài khoản? ',
-                        style: theme.textTheme.bodyMedium),
+                    Text(
+                      'Chưa có tài khoản? ',
+                      style: theme.textTheme.bodyMedium,
+                    ),
                     GestureDetector(
                       onTap: () => context.go('/register'),
                       child: Text(
@@ -155,11 +233,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         style: theme.textTheme.bodyMedium?.copyWith(
                           color: theme.colorScheme.primary,
                           fontWeight: FontWeight.w600,
+                          decoration: TextDecoration.underline,
+                          decorationColor: theme.colorScheme.primary,
+                          decorationThickness: 2,
                         ),
                       ),
                     ),
                   ],
                 ),
+                const SizedBox(height: 16),
               ],
             ),
           ),
@@ -168,5 +250,3 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     );
   }
 }
-
-
