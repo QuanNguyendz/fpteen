@@ -1,7 +1,10 @@
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:gal/gal.dart';
 import 'package:qr_flutter/qr_flutter.dart';
+import 'package:screenshot/screenshot.dart';
 import 'package:fpteen/data/models/order_model.dart';
 import 'package:fpteen/features/invoice/providers/invoice_provider.dart';
 import 'package:fpteen/shared/widgets/app_error_widget.dart';
@@ -43,13 +46,84 @@ class InvoiceScreen extends ConsumerWidget {
   }
 }
 
-class _InvoiceContent extends StatelessWidget {
+class _InvoiceContent extends StatefulWidget {
   const _InvoiceContent({required this.order});
   final OrderModel order;
 
   @override
+  State<_InvoiceContent> createState() => _InvoiceContentState();
+}
+
+class _InvoiceContentState extends State<_InvoiceContent> {
+  static const String _pickupQrPrefix = 'fpteen-pickup:';
+  final ScreenshotController _screenshotController = ScreenshotController();
+  bool _isDownloading = false;
+
+  String _pickupQrData(String orderId) => '$_pickupQrPrefix$orderId';
+
+  Future<void> _downloadQrCode() async {
+    setState(() => _isDownloading = true);
+    try {
+      // Check & request gallery access permission
+      final hasAccess = await Gal.hasAccess(toAlbum: false);
+      if (!hasAccess) {
+        final granted = await Gal.requestAccess(toAlbum: false);
+        if (!granted) {
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+                content: Text('Cần cấp quyền lưu ảnh để tải xuống QR')),
+          );
+          return;
+        }
+      }
+
+      final Uint8List? imageBytes = await _screenshotController.capture(
+        pixelRatio: 3.0,
+      );
+      if (imageBytes == null) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Không thể tạo ảnh QR')),
+        );
+        return;
+      }
+
+      await Gal.putImageBytes(imageBytes);
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Đã lưu mã QR vào thư viện ảnh!'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } on GalException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Lưu ảnh thất bại: ${e.type.message}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Lỗi: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isDownloading = false);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final order = widget.order;
     final theme = Theme.of(context);
+    final pickupQrData = _pickupQrData(order.id);
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
@@ -118,17 +192,45 @@ class _InvoiceContent extends StatelessWidget {
                   style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
                 ),
                 const SizedBox(height: 16),
-                QrImageView(
-                  data: order.id,
-                  version: QrVersions.auto,
-                  size: 220,
-                  eyeStyle: const QrEyeStyle(
-                    eyeShape: QrEyeShape.square,
-                    color: Colors.black,
-                  ),
-                  dataModuleStyle: const QrDataModuleStyle(
-                    dataModuleShape: QrDataModuleShape.square,
-                    color: Colors.black,
+                // Wrap QR in Screenshot widget for capture
+                Screenshot(
+                  controller: _screenshotController,
+                  child: Container(
+                    color: Colors.white,
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        QrImageView(
+                          data: pickupQrData,
+                          version: QrVersions.auto,
+                          size: 220,
+                          eyeStyle: const QrEyeStyle(
+                            eyeShape: QrEyeShape.square,
+                            color: Colors.black,
+                          ),
+                          dataModuleStyle: const QrDataModuleStyle(
+                            dataModuleShape: QrDataModuleShape.square,
+                            color: Colors.black,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          '#${order.id.substring(0, 8).toUpperCase()}',
+                          style: const TextStyle(
+                            fontFamily: 'monospace',
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'FPTeen – Đặt đồ ăn canteen',
+                          style: TextStyle(
+                              fontSize: 11, color: Colors.grey.shade500),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -145,6 +247,26 @@ class _InvoiceContent extends StatelessWidget {
                       fontFamily: 'monospace',
                       fontWeight: FontWeight.w600,
                       fontSize: 16,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                // Download button
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: _isDownloading ? null : _downloadQrCode,
+                    icon: _isDownloading
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.download_rounded),
+                    label: Text(
+                        _isDownloading ? 'Đang lưu...' : 'Tải xuống mã QR'),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 10),
                     ),
                   ),
                 ),
@@ -274,5 +396,4 @@ class _DetailRow extends StatelessWidget {
         ),
       );
 }
-
 
