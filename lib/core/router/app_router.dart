@@ -10,6 +10,8 @@ import 'package:fpteen/features/admin/screens/store_management_screen.dart';
 import 'package:fpteen/features/auth/providers/auth_provider.dart';
 import 'package:fpteen/features/auth/screens/login_screen.dart';
 import 'package:fpteen/features/auth/screens/register_screen.dart';
+import 'package:fpteen/features/auth/screens/forgot_password_screen.dart';
+import 'package:fpteen/features/auth/screens/reset_password_screen.dart';
 import 'package:fpteen/features/canteen/screens/store_profile_screen.dart';
 import 'package:fpteen/features/checkout/screens/checkout_screen.dart';
 import 'package:fpteen/features/checkout/screens/continue_payment_screen.dart';
@@ -45,7 +47,17 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       final isAuthenticated = auth.isAuthenticated;
       final loc = state.matchedLocation;
-      final isAuthRoute = loc == '/login' || loc == '/register';
+
+      // Handle Password Recovery Flow
+      if (auth.isRecoveringPassword) {
+        if (loc == '/reset-password') return null;
+        return '/reset-password';
+      }
+
+      final isAuthRoute = loc == '/login' ||
+          loc == '/register' ||
+          loc == '/forgot-password' ||
+          loc == '/reset-password';
 
       // Not authenticated → login
       if (!isAuthenticated && !isAuthRoute) return '/login';
@@ -81,18 +93,26 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/login',
         pageBuilder: (ctx, state) =>
-            const NoTransitionPage(child: LoginScreen()),
+        const NoTransitionPage(child: LoginScreen()),
       ),
       GoRoute(
         path: '/register',
         builder: (ctx, state) => const RegisterScreen(),
+      ),
+      GoRoute(
+        path: '/forgot-password',
+        builder: (ctx, state) => const ForgotPasswordScreen(),
+      ),
+      GoRoute(
+        path: '/reset-password',
+        builder: (ctx, state) => const ResetPasswordScreen(),
       ),
 
       // ── Customer ──────────────────────────────────────────────────────────
       GoRoute(
         path: '/home',
         pageBuilder: (ctx, state) =>
-            const NoTransitionPage(child: HomeScreen()),
+        const NoTransitionPage(child: HomeScreen()),
         routes: [
           GoRoute(
             path: 'store/:storeId',
@@ -154,7 +174,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/canteen',
         pageBuilder: (ctx, state) =>
-            const NoTransitionPage(child: CanteenOrderListScreen()),
+        const NoTransitionPage(child: CanteenOrderListScreen()),
         routes: [
           GoRoute(
             path: 'scan',
@@ -171,7 +191,7 @@ final routerProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: 'add',
                 builder: (ctx, state) =>
-                    const AddEditMenuItemScreen(menuItem: null),
+                const AddEditMenuItemScreen(menuItem: null),
               ),
               GoRoute(
                 path: 'edit',
@@ -188,7 +208,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/admin',
         pageBuilder: (ctx, state) =>
-            const NoTransitionPage(child: AdminDashboardScreen()),
+        const NoTransitionPage(child: AdminDashboardScreen()),
         routes: [
           GoRoute(
             path: 'stores',

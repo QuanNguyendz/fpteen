@@ -15,6 +15,9 @@ dependencies:
   # Backend
   supabase_flutter: ^2.8.0
 
+  # Authentication
+  google_sign_in: ^6.2.2
+
   # State management
   flutter_riverpod: ^2.6.1
 

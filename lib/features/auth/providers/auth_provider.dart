@@ -19,13 +19,17 @@ final authRepositoryProvider = Provider<AuthRepository>((ref) {
 class AuthAppState {
   const AuthAppState({
     this.user,
-    this.isLoading = true,
+    this.isLoading = false,
     this.error,
+    this.message,
+    this.isRecoveringPassword = false,
   });
 
   final UserModel? user;
   final bool isLoading;
   final String? error;
+  final String? message;
+  final bool isRecoveringPassword;
 
   bool get isAuthenticated => user != null;
 
@@ -35,17 +39,22 @@ class AuthAppState {
     bool? isLoading,
     String? error,
     bool clearError = false,
+    String? message,
+    bool clearMessage = false,
+    bool? isRecoveringPassword,
   }) =>
       AuthAppState(
         user: clearUser ? null : user ?? this.user,
         isLoading: isLoading ?? this.isLoading,
         error: clearError ? null : error ?? this.error,
+        message: clearMessage ? null : message ?? this.message,
+        isRecoveringPassword: isRecoveringPassword ?? this.isRecoveringPassword,
       );
 }
 
 // ── Auth notifier ─────────────────────────────────────────────────────────────
 class AuthNotifier extends StateNotifier<AuthAppState> {
-  AuthNotifier(this._repo) : super(const AuthAppState()) {
+  AuthNotifier(this._repo) : super(const AuthAppState(isLoading: true)) {
     _init();
   }
 
@@ -66,6 +75,9 @@ class AuthNotifier extends StateNotifier<AuthAppState> {
         if (uid != null) await _loadProfile(uid);
       } else if (data.event == AuthChangeEvent.signedOut) {
         state = const AuthAppState(isLoading: false);
+      } else if (data.event == AuthChangeEvent.passwordRecovery) {
+        // Khi nhấn vào link recovery, ta set trạng thái và xóa user hiện tại để router redirect đúng
+        state = state.copyWith(isRecoveringPassword: true, clearUser: true);
       }
     });
   }
@@ -84,7 +96,15 @@ class AuthNotifier extends StateNotifier<AuthAppState> {
     state = state.copyWith(isLoading: true, clearError: true);
     try {
       await _repo.signIn(email: email, password: password);
-      // Profile loaded via _authSub listener
+    } catch (e) {
+      state = AuthAppState(isLoading: false, error: e.toString());
+    }
+  }
+
+  Future<void> signInWithGoogle() async {
+    state = state.copyWith(isLoading: true, clearError: true);
+    try {
+      await _repo.signInWithGoogle();
     } catch (e) {
       state = AuthAppState(isLoading: false, error: e.toString());
     }
@@ -106,14 +126,51 @@ class AuthNotifier extends StateNotifier<AuthAppState> {
         phone: phone,
         role: role,
       );
-      // Profile created by trigger, loaded via _authSub listener
     } catch (e) {
       state = AuthAppState(isLoading: false, error: e.toString());
     }
   }
 
+  Future<void> resetPassword(String email) async {
+    state = state.copyWith(isLoading: true, clearError: true, clearMessage: true);
+    try {
+      await _repo.sendPasswordResetEmail(email);
+      state = state.copyWith(
+        isLoading: false,
+        message: 'Yêu cầu đặt lại mật khẩu đã được gửi đến email của bạn.',
+      );
+    } catch (e) {
+      state = state.copyWith(isLoading: false, error: e.toString());
+    }
+  }
+
+  Future<void> updatePassword(String newPassword) async {
+    state = state.copyWith(isLoading: true, clearError: true, clearMessage: true);
+    try {
+      await _repo.updatePassword(newPassword);
+      // Sau khi cập nhật xong, đăng xuất để người dùng đăng nhập lại với pass mới
+      await _repo.signOut();
+      state = state.copyWith(
+        isLoading: false,
+        isRecoveringPassword: false,
+        clearUser: true,
+        message: 'Mật khẩu đã được cập nhật thành công. Vui lòng đăng nhập lại.',
+      );
+    } catch (e) {
+      state = state.copyWith(isLoading: false, error: e.toString());
+    }
+  }
+
   Future<void> signOut() async {
     await _repo.signOut();
+  }
+
+  void clearError() {
+    state = state.copyWith(clearError: true);
+  }
+
+  void clearMessage() {
+    state = state.copyWith(clearMessage: true);
   }
 
   @override
@@ -124,8 +181,6 @@ class AuthNotifier extends StateNotifier<AuthAppState> {
 }
 
 final authNotifierProvider =
-    StateNotifierProvider<AuthNotifier, AuthAppState>((ref) {
+StateNotifierProvider<AuthNotifier, AuthAppState>((ref) {
   return AuthNotifier(ref.watch(authRepositoryProvider));
 });
-
-
