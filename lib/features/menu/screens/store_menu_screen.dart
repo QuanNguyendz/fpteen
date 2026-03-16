@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:fpteen/data/models/menu_item_model.dart';
+import 'package:fpteen/data/models/store_model.dart';
+import 'package:fpteen/features/home/providers/stores_provider.dart';
 import 'package:fpteen/features/menu/providers/cart_provider.dart';
 import 'package:fpteen/features/menu/providers/menu_provider.dart';
 import 'package:fpteen/shared/widgets/app_error_widget.dart';
@@ -10,6 +12,11 @@ import 'package:fpteen/shared/widgets/loading_widget.dart';
 import 'package:intl/intl.dart';
 
 final _vndFormat = NumberFormat.currency(locale: 'vi_VN', symbol: '₫');
+
+final _storeProvider = FutureProvider.family.autoDispose<StoreModel, String>(
+    (ref, storeId) {
+  return ref.watch(storeRepositoryProvider).fetchStore(storeId);
+});
 
 class StoreMenuScreen extends ConsumerWidget {
   const StoreMenuScreen({super.key, required this.storeId});
@@ -19,11 +26,23 @@ class StoreMenuScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final menuAsync = ref.watch(storeMenuProvider(storeId));
     final cart = ref.watch(cartProvider);
+    final storeAsync = ref.watch(_storeProvider(storeId));
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Menu'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.report_outlined),
+            tooltip: 'Báo cáo canteen',
+            onPressed: () {
+              final storeName = storeAsync.valueOrNull?.name ?? 'Canteen';
+              context.push(
+                '/home/report/$storeId',
+                extra: {'storeName': storeName},
+              );
+            },
+          ),
           if (!cart.isEmpty)
             Stack(
               alignment: Alignment.topRight,
@@ -173,6 +192,24 @@ class _MenuItemTile extends ConsumerWidget {
                   Text(item.name,
                       style: const TextStyle(
                           fontWeight: FontWeight.w600, fontSize: 15)),
+                  if ((item.ratingCount ?? 0) > 0) ...[
+                    const SizedBox(height: 2),
+                    Row(
+                      children: [
+                        Icon(Icons.star,
+                            size: 14, color: Colors.amber.shade700),
+                        const SizedBox(width: 4),
+                        Text(
+                          '${(item.avgRating ?? 0).toStringAsFixed(1)} (${item.ratingCount})',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey.shade700,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                   if (item.description != null)
                     Text(item.description!,
                         maxLines: 2,

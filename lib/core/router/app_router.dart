@@ -25,6 +25,8 @@ import 'package:fpteen/features/menu_management/screens/menu_management_screen.d
 import 'package:fpteen/features/orders/canteen/screens/canteen_order_list_screen.dart';
 import 'package:fpteen/features/orders/canteen/screens/qr_scanner_screen.dart';
 import 'package:fpteen/features/orders/customer/screens/order_history_screen.dart';
+import 'package:fpteen/features/analytics/screens/store_analytics_screen.dart';
+import 'package:fpteen/features/reports/screens/my_reports_screen.dart';
 import 'package:fpteen/features/reports/screens/report_screen.dart';
 
 class _AuthChangeNotifier extends ChangeNotifier {
@@ -147,6 +149,10 @@ final routerProvider = Provider<GoRouter>((ref) {
             builder: (ctx, state) => const OrderHistoryScreen(),
           ),
           GoRoute(
+            path: 'my-reports',
+            builder: (ctx, state) => const MyReportsScreen(),
+          ),
+          GoRoute(
             path: 'order/:orderId/continue-payment',
             builder: (ctx, state) {
               final orderId = state.pathParameters['orderId']!;
@@ -176,6 +182,10 @@ final routerProvider = Provider<GoRouter>((ref) {
         pageBuilder: (ctx, state) =>
         const NoTransitionPage(child: CanteenOrderListScreen()),
         routes: [
+          GoRoute(
+            path: 'analytics',
+            builder: (ctx, state) => const StoreAnalyticsScreen(),
+          ),
           GoRoute(
             path: 'scan',
             builder: (ctx, state) => const QRScannerScreen(),

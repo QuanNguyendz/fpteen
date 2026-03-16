@@ -9,6 +9,8 @@ class MenuItemModel {
     this.imageUrl,
     required this.isAvailable,
     required this.createdAt,
+    this.avgRating,
+    this.ratingCount,
   });
 
   final String id;
@@ -20,6 +22,8 @@ class MenuItemModel {
   final String? imageUrl;
   final bool isAvailable;
   final DateTime createdAt;
+  final double? avgRating;
+  final int? ratingCount;
 
   factory MenuItemModel.fromJson(Map<String, dynamic> json) => MenuItemModel(
         id: json['id'] as String,
@@ -31,6 +35,8 @@ class MenuItemModel {
         imageUrl: json['image_url'] as String?,
         isAvailable: json['is_available'] as bool? ?? true,
         createdAt: DateTime.parse(json['created_at'] as String),
+        avgRating: (json['avg_rating'] as num?)?.toDouble(),
+        ratingCount: (json['rating_count'] as num?)?.toInt(),
       );
 
   Map<String, dynamic> toJson() => {
@@ -43,6 +49,8 @@ class MenuItemModel {
         'image_url': imageUrl,
         'is_available': isAvailable,
         'created_at': createdAt.toIso8601String(),
+        'avg_rating': avgRating,
+        'rating_count': ratingCount,
       };
 
   MenuItemModel copyWith({
@@ -52,6 +60,8 @@ class MenuItemModel {
     String? imageUrl,
     bool? isAvailable,
     String? categoryId,
+    double? avgRating,
+    int? ratingCount,
   }) =>
       MenuItemModel(
         id: id,
@@ -63,6 +73,8 @@ class MenuItemModel {
         imageUrl: imageUrl ?? this.imageUrl,
         isAvailable: isAvailable ?? this.isAvailable,
         createdAt: createdAt,
+        avgRating: avgRating ?? this.avgRating,
+        ratingCount: ratingCount ?? this.ratingCount,
       );
 }
 

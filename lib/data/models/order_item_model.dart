@@ -6,6 +6,7 @@ class OrderItemModel {
     required this.quantity,
     required this.unitPrice,
     this.menuItemName,
+    this.menuItemStoreId,
   });
 
   final String id;
@@ -14,6 +15,7 @@ class OrderItemModel {
   final int quantity;
   final int unitPrice;
   final String? menuItemName; // populated from join
+  final String? menuItemStoreId; // populated from join when needed
 
   int get subtotal => unitPrice * quantity;
 
@@ -27,6 +29,7 @@ class OrderItemModel {
       quantity: json['quantity'] as int,
       unitPrice: (json['unit_price'] as num).toInt(),
       menuItemName: menuItem?['name'] as String?,
+      menuItemStoreId: menuItem?['store_id'] as String?,
     );
   }
 }

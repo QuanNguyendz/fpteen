@@ -8,7 +8,7 @@ class OrderRepository {
   final SupabaseClient _supabase;
 
   static const String _orderSelect =
-      '*, order_items(*, menu_items(name)), stores(name)';
+      '*, order_items(*, menu_items(name, store_id)), stores(name)';
 
   /// Creates order atomically via RPC (price validated server-side).
   Future<String> createOrder({
@@ -45,7 +45,7 @@ class OrderRepository {
     try {
       final data = await _supabase
           .from('orders')
-          .select('*, order_items(*, menu_items(name)), stores(name)')
+          .select('*, order_items(*, menu_items(name, store_id)), stores(name)')
           .eq('customer_id', customerId)
           .order('created_at', ascending: false);
       return (data as List)

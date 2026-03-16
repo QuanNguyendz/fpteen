@@ -7,6 +7,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 import 'package:screenshot/screenshot.dart';
 import 'package:fpteen/data/models/order_model.dart';
 import 'package:fpteen/features/invoice/providers/invoice_provider.dart';
+import 'package:fpteen/features/reviews/providers/review_provider.dart';
 import 'package:fpteen/shared/widgets/app_error_widget.dart';
 import 'package:fpteen/shared/widgets/loading_widget.dart';
 import 'package:intl/intl.dart';
@@ -27,6 +28,18 @@ class InvoiceScreen extends ConsumerWidget {
         title: const Text('Hóa đơn'),
         automaticallyImplyLeading: false,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.report_outlined),
+            tooltip: 'Báo cáo canteen',
+            onPressed: () {
+              final order = invoiceAsync.valueOrNull;
+              if (order == null) return;
+              context.push(
+                '/home/report/${order.storeId}',
+                extra: {'storeName': order.storeName ?? 'Canteen'},
+              );
+            },
+          ),
           TextButton.icon(
             icon: const Icon(Icons.home_outlined),
             label: const Text('Trang chủ'),
@@ -298,19 +311,40 @@ class _InvoiceContentState extends State<_InvoiceContent> {
                   const Divider(height: 20),
                   ...order.items.map(
                     (item) => Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 4),
-                      child: Row(
+                      padding: const EdgeInsets.symmetric(vertical: 6),
+                      child: Column(
                         children: [
-                          Expanded(
-                            child: Text(
-                              '${item.menuItemName ?? 'Món ăn'} x${item.quantity}',
-                              style: const TextStyle(fontSize: 14),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  '${item.menuItemName ?? 'Món ăn'} x${item.quantity}',
+                                  style: const TextStyle(fontSize: 14),
+                                ),
+                              ),
+                              Text(
+                                _vndFormat.format(item.subtotal),
+                                style: const TextStyle(fontWeight: FontWeight.w500),
+                              ),
+                            ],
+                          ),
+                          if (item.menuItemStoreId != null)
+                            Align(
+                              alignment: Alignment.centerRight,
+                              child: TextButton(
+                                onPressed: () => showModalBottomSheet(
+                                  context: context,
+                                  isScrollControlled: true,
+                                  showDragHandle: true,
+                                  builder: (ctx) => _ReviewSheet(
+                                    menuItemId: item.menuItemId,
+                                    storeId: item.menuItemStoreId!,
+                                    menuItemName: item.menuItemName ?? 'Món ăn',
+                                  ),
+                                ),
+                                child: const Text('Đánh giá'),
+                              ),
                             ),
-                          ),
-                          Text(
-                            _vndFormat.format(item.subtotal),
-                            style: const TextStyle(fontWeight: FontWeight.w500),
-                          ),
                         ],
                       ),
                     ),
@@ -368,6 +402,7 @@ class _InvoiceContentState extends State<_InvoiceContent> {
         return '—';
     }
   }
+
 }
 
 class _DetailRow extends StatelessWidget {
@@ -396,4 +431,152 @@ class _DetailRow extends StatelessWidget {
         ),
       );
 }
+
+class _ReviewSheet extends ConsumerStatefulWidget {
+  const _ReviewSheet({
+    required this.menuItemId,
+    required this.storeId,
+    required this.menuItemName,
+  });
+
+  final String menuItemId;
+  final String storeId;
+  final String menuItemName;
+
+  @override
+  ConsumerState<_ReviewSheet> createState() => _ReviewSheetState();
+}
+
+class _ReviewSheetState extends ConsumerState<_ReviewSheet> {
+  final _contentCtrl = TextEditingController();
+  int _rating = 5;
+
+  @override
+  void dispose() {
+    _contentCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final myReviewAsync = ref.watch(myReviewForMenuItemProvider(widget.menuItemId));
+    final upsertState = ref.watch(upsertReviewProvider);
+    final theme = Theme.of(context);
+
+    ref.listen(upsertReviewProvider, (_, next) {
+      if (next.hasError) {
+        final msg = next.error.toString();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Không thể lưu đánh giá: $msg'),
+            backgroundColor: theme.colorScheme.error,
+          ),
+        );
+      } else if (next is AsyncData) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Đã lưu đánh giá. Cảm ơn bạn!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    });
+
+    return Padding(
+      padding: EdgeInsets.only(
+        left: 16,
+        right: 16,
+        top: 8,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+      ),
+      child: myReviewAsync.when(
+        loading: () => const SizedBox(
+          height: 160,
+          child: Center(child: CircularProgressIndicator()),
+        ),
+        error: (e, _) => SizedBox(
+          height: 160,
+          child: Center(child: Text(e.toString())),
+        ),
+        data: (review) {
+          if (review != null) {
+            _rating = review.rating;
+            _contentCtrl.text = review.content ?? '';
+          }
+
+          return Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                'Đánh giá: ${widget.menuItemName}',
+                style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  for (int i = 1; i <= 5; i++)
+                    IconButton(
+                      onPressed: () => setState(() => _rating = i),
+                      icon: Icon(
+                        i <= _rating ? Icons.star : Icons.star_border,
+                        color: Colors.amber.shade700,
+                      ),
+                    ),
+                  const Spacer(),
+                  Text('$_rating/5', style: const TextStyle(fontWeight: FontWeight.w600)),
+                ],
+              ),
+              TextField(
+                controller: _contentCtrl,
+                maxLines: 3,
+                maxLength: 300,
+                decoration: const InputDecoration(
+                  labelText: 'Mô tả (tuỳ chọn)',
+                  hintText: 'Bạn thấy món ăn như thế nào?',
+                  alignLabelWithHint: true,
+                ),
+              ),
+              if (review != null) ...[
+                const SizedBox(height: 4),
+                Text(
+                  'Cập nhật: ${DateFormat('dd/MM/yyyy HH:mm').format(review.updatedAt.toLocal())}',
+                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                ),
+              ],
+              const SizedBox(height: 8),
+              ElevatedButton(
+                onPressed: upsertState.isLoading
+                    ? null
+                    : () async {
+                        final navigator = Navigator.of(context);
+                        await ref.read(upsertReviewProvider.notifier).upsert(
+                              menuItemId: widget.menuItemId,
+                              storeId: widget.storeId,
+                              rating: _rating,
+                              content: _contentCtrl.text.trim().isEmpty
+                                  ? null
+                                  : _contentCtrl.text.trim(),
+                            );
+                        if (mounted) navigator.pop();
+                      },
+                child: upsertState.isLoading
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : const Text('Lưu đánh giá'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
 

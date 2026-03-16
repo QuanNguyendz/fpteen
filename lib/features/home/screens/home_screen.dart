@@ -5,22 +5,68 @@ import 'package:go_router/go_router.dart';
 import 'package:fpteen/data/models/store_model.dart';
 import 'package:fpteen/features/auth/providers/auth_provider.dart';
 import 'package:fpteen/features/home/providers/stores_provider.dart';
+import 'package:fpteen/features/menu/providers/cart_provider.dart';
 import 'package:fpteen/shared/widgets/app_error_widget.dart';
 import 'package:fpteen/shared/widgets/empty_state_widget.dart';
 import 'package:fpteen/shared/widgets/loading_widget.dart';
 
-class HomeScreen extends ConsumerWidget {
+class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends ConsumerState<HomeScreen> {
+  bool _isGridView = false;
+
+  @override
+  Widget build(BuildContext context) {
     final user = ref.watch(authNotifierProvider).user;
     final storesAsync = ref.watch(activeStoresProvider);
+    final cart = ref.watch(cartProvider);
 
     return Scaffold(
       appBar: AppBar(
+        centerTitle: false,
         title: const Text('FPTeen'),
         actions: [
+          // Cart
+          if (!cart.isEmpty)
+            Stack(
+              alignment: Alignment.topRight,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.shopping_cart_outlined),
+                  tooltip: 'Giỏ hàng',
+                  onPressed: () => context.push('/home/cart'),
+                ),
+                Positioned(
+                  right: 6,
+                  top: 6,
+                  child: Container(
+                    padding: const EdgeInsets.all(3),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.error,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Text(
+                      '${cart.totalQuantity}',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          IconButton(
+            icon: Icon(_isGridView ? Icons.view_list : Icons.grid_view),
+            tooltip: _isGridView ? 'Hiển thị dạng danh sách' : 'Hiển thị dạng lưới',
+            onPressed: () => setState(() => _isGridView = !_isGridView),
+          ),
           IconButton(
             icon: const Icon(Icons.history_outlined),
             tooltip: 'Lịch sử đơn hàng',
@@ -89,7 +135,7 @@ class HomeScreen extends ConsumerWidget {
               loading: () => const AppLoadingWidget(message: 'Đang tải...'),
               error: (e, _) => AppErrorWidget(
                 message: e.toString(),
-                onRetry: () => ref.invalidate(activeStoresProvider),
+                onRetry: () => ref.read(activeStoresProvider.notifier).refresh(),
               ),
               data: (stores) {
                 if (stores.isEmpty) {
@@ -99,13 +145,32 @@ class HomeScreen extends ConsumerWidget {
                   );
                 }
                 return RefreshIndicator(
-                  onRefresh: () async => ref.invalidate(activeStoresProvider),
-                  child: ListView.separated(
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-                    itemCount: stores.length,
-                    separatorBuilder: (_, _) => const SizedBox(height: 12),
-                    itemBuilder: (ctx, i) => _StoreCard(store: stores[i]),
-                  ),
+                  onRefresh: () async =>
+                      ref.read(activeStoresProvider.notifier).refresh(),
+                  child: _isGridView
+                      ? GridView.builder(
+                          padding:
+                              const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                          gridDelegate:
+                              const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 3,
+                            mainAxisSpacing: 12,
+                            crossAxisSpacing: 12,
+                            childAspectRatio: 0.75,
+                          ),
+                          itemCount: stores.length,
+                          itemBuilder: (ctx, i) =>
+                              _StoreGridCard(store: stores[i]),
+                        )
+                      : ListView.separated(
+                          padding:
+                              const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                          itemCount: stores.length,
+                          separatorBuilder: (_, _) =>
+                              const SizedBox(height: 12),
+                          itemBuilder: (ctx, i) =>
+                              _StoreCard(store: stores[i]),
+                        ),
                 );
               },
             ),
@@ -148,12 +213,30 @@ class _StoreCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    store.name,
-                    style: Theme.of(context)
-                        .textTheme
-                        .titleMedium
-                        ?.copyWith(fontWeight: FontWeight.w700),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          store.name,
+                          style: Theme.of(context)
+                              .textTheme
+                              .titleMedium
+                              ?.copyWith(fontWeight: FontWeight.w700),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      IconButton(
+                        tooltip: 'Báo cáo canteen',
+                        onPressed: () {
+                          context.push(
+                            '/home/report/${store.id}',
+                            extra: {'storeName': store.name},
+                          );
+                        },
+                        icon: const Icon(Icons.report_outlined),
+                      ),
+                    ],
                   ),
                   if (store.description != null) ...[
                     const SizedBox(height: 4),
@@ -185,6 +268,53 @@ class _StoreCard extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _StoreGridCard extends StatelessWidget {
+  const _StoreGridCard({required this.store});
+  final StoreModel store;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(16),
+      onTap: () => context.push('/home/store/${store.id}'),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: store.logoUrl != null
+                  ? CachedNetworkImage(
+                      imageUrl: store.logoUrl!,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                    )
+                  : _PlaceholderImage(),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            store.name,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context)
+                .textTheme
+                .bodyMedium
+                ?.copyWith(fontWeight: FontWeight.w700),
+          ),
+          if (store.address != null)
+            Text(
+              store.address!,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+            ),
+        ],
       ),
     );
   }

@@ -28,7 +28,7 @@ class AppTheme {
         foregroundColor: colorScheme.onSurface,
         elevation: 0,
         scrolledUnderElevation: 1,
-        centerTitle: true,
+        centerTitle: false,
         titleTextStyle: TextStyle(
           color: colorScheme.onSurface,
           fontSize: 18,

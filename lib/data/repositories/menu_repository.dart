@@ -27,11 +27,10 @@ class MenuRepository {
 
   Future<List<MenuItemModel>> fetchMenuItems(String storeId) async {
     try {
-      final data = await _supabase
-          .from('menu_items')
-          .select()
-          .eq('store_id', storeId)
-          .order('name');
+      final data = await _supabase.rpc(
+        'get_store_menu_with_ratings',
+        params: {'p_store_id': storeId},
+      );
       return (data as List)
           .map((e) => MenuItemModel.fromJson(e as Map<String, dynamic>))
           .toList();

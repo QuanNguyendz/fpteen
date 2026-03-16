@@ -31,6 +31,11 @@ class CanteenOrderListScreen extends ConsumerWidget {
         ),
         actions: [
           IconButton(
+            icon: const Icon(Icons.insights_outlined),
+            tooltip: 'Phân tích cửa hàng',
+            onPressed: () => context.push('/canteen/analytics'),
+          ),
+          IconButton(
             icon: const Icon(Icons.restaurant_menu_outlined),
             tooltip: 'Quản lý menu',
             onPressed: () => context.push('/canteen/menu'),
@@ -139,14 +144,15 @@ class _SummaryChip extends StatelessWidget {
   }
 }
 
-class _CanteenOrderCard extends StatelessWidget {
+class _CanteenOrderCard extends ConsumerWidget {
   const _CanteenOrderCard({required this.order});
   final OrderModel order;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final isConfirmed = order.isConfirmed;
+    final canManualConfirm = order.isPaid && !isConfirmed;
 
     return Card(
       child: Padding(
@@ -157,25 +163,101 @@ class _CanteenOrderCard extends StatelessWidget {
             Row(
               children: [
                 // Checkbox-style indicator
-                AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  width: 24,
-                  height: 24,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: isConfirmed
-                        ? Colors.green
-                        : Colors.transparent,
-                    border: Border.all(
-                      color: isConfirmed
-                          ? Colors.green
-                          : Colors.grey.shade400,
-                      width: 2,
-                    ),
-                  ),
-                  child: isConfirmed
-                      ? const Icon(Icons.check, color: Colors.white, size: 16)
+                InkWell(
+                  borderRadius: BorderRadius.circular(20),
+                  onTap: canManualConfirm
+                      ? () async {
+                          final ok = await showDialog<bool>(
+                            context: context,
+                            builder: (ctx) => AlertDialog(
+                              title: const Text('Xác nhận đã giao món?'),
+                              content: const Text(
+                                'Bạn có chắc khách đã nhận món và muốn xác nhận đơn này?',
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.of(ctx).pop(false),
+                                  child: const Text('Hủy'),
+                                ),
+                                TextButton(
+                                  onPressed: () => Navigator.of(ctx).pop(true),
+                                  child: const Text('Xác nhận'),
+                                ),
+                              ],
+                            ),
+                          );
+                          if (ok != true) return;
+
+                          try {
+                            final supabase = ref.read(supabaseClientProvider);
+                            final response = await supabase.functions.invoke(
+                              'confirm-order',
+                              body: {'order_id': order.id},
+                            );
+
+                            if (response.status == 200) {
+                              ref
+                                  .read(canteenOrdersProvider.notifier)
+                                  .markConfirmed(order.id);
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Đã xác nhận đơn hàng.'),
+                                    backgroundColor: Colors.green,
+                                  ),
+                                );
+                              }
+                            } else {
+                              final errorMsg = response.data?['error'] ??
+                                  response.data?['current_status'] ??
+                                  'Lỗi xác nhận đơn hàng';
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(errorMsg.toString()),
+                                    backgroundColor: theme.colorScheme.error,
+                                  ),
+                                );
+                              }
+                            }
+                          } catch (_) {
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: const Text(
+                                      'Không thể kết nối. Kiểm tra mạng và thử lại.'),
+                                  backgroundColor: theme.colorScheme.error,
+                                ),
+                              );
+                            }
+                          }
+                        }
                       : null,
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    width: 24,
+                    height: 24,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color:
+                          isConfirmed ? Colors.green : Colors.transparent,
+                      border: Border.all(
+                        color: isConfirmed
+                            ? Colors.green
+                            : canManualConfirm
+                                ? theme.colorScheme.primary
+                                : Colors.grey.shade400,
+                        width: 2,
+                      ),
+                    ),
+                    child: isConfirmed
+                        ? const Icon(Icons.check,
+                            color: Colors.white, size: 16)
+                        : canManualConfirm
+                            ? Icon(Icons.check,
+                                color: theme.colorScheme.primary, size: 16)
+                            : null,
+                  ),
                 ),
                 const SizedBox(width: 10),
                 Expanded(

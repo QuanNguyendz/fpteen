@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:fpteen/features/auth/providers/auth_provider.dart';
+import 'package:fpteen/core/errors/app_exception.dart';
 
 class ReportScreen extends ConsumerStatefulWidget {
   const ReportScreen({super.key, required this.storeId, required this.storeName});
@@ -29,7 +30,10 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
 
     try {
       final supabase = ref.read(supabaseClientProvider);
-      final userId = ref.read(authNotifierProvider).user?.id;
+      final userId = supabase.auth.currentUser?.id;
+      if (userId == null) {
+        throw const AppAuthException('Bạn cần đăng nhập để gửi báo cáo.');
+      }
 
       await supabase.from('reports').insert({
         'reporter_id': userId,
@@ -49,7 +53,7 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Gửi báo cáo thất bại: $e'),
+          content: Text('Gửi báo cáo thất bại: ${e is AppException ? e.message : e.toString()}'),
           backgroundColor: Theme.of(context).colorScheme.error,
         ),
       );
