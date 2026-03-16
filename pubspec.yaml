@@ -49,6 +49,11 @@ dependencies:
   # URL launcher (open payment page fallback)
   url_launcher: ^6.3.1
 
+  # QR download
+  screenshot: ^3.0.0
+  gal: ^2.3.0
+  permission_handler: ^11.3.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

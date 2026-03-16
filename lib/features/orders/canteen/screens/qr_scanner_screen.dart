@@ -15,6 +15,7 @@ class QRScannerScreen extends ConsumerStatefulWidget {
 }
 
 class _QRScannerScreenState extends ConsumerState<QRScannerScreen> {
+  static const String _pickupQrPrefix = 'fpteen-pickup:';
   final MobileScannerController _scannerCtrl = MobileScannerController(
     detectionSpeed: DetectionSpeed.noDuplicates,
     facing: CameraFacing.back,
@@ -30,18 +31,32 @@ class _QRScannerScreenState extends ConsumerState<QRScannerScreen> {
     super.dispose();
   }
 
+  String? _extractOrderId(String rawQrValue) {
+    final value = rawQrValue.trim();
+    final uuidRegex = RegExp(
+      r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$',
+      caseSensitive: false,
+    );
+
+    // New format: fpteen-pickup:<uuid>
+    if (value.toLowerCase().startsWith(_pickupQrPrefix)) {
+      final extracted = value.substring(_pickupQrPrefix.length).trim();
+      return uuidRegex.hasMatch(extracted) ? extracted : null;
+    }
+
+    // Backward compatibility: plain UUID QR
+    return uuidRegex.hasMatch(value) ? value : null;
+  }
+
   Future<void> _handleDetect(BarcodeCapture capture) async {
     if (_isProcessing) return;
-    final code = capture.barcodes.firstOrNull?.rawValue;
-    if (code == null || code.isEmpty) return;
+    final rawCode = capture.barcodes.firstOrNull?.rawValue;
+    if (rawCode == null || rawCode.isEmpty) return;
 
-    // Validate UUID format
-    final uuidRegex = RegExp(
-        r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$',
-        caseSensitive: false);
-    if (!uuidRegex.hasMatch(code)) {
+    final orderId = _extractOrderId(rawCode);
+    if (orderId == null) {
       setState(() {
-        _message = 'QR không hợp lệ. Vui lòng quét QR hóa đơn FPTeen.';
+        _message = 'QR không hợp lệ. Vui lòng quét mã nhận hàng FPTeen.';
         _success = false;
       });
       return;
@@ -54,12 +69,12 @@ class _QRScannerScreenState extends ConsumerState<QRScannerScreen> {
       final supabase = ref.read(supabaseClientProvider);
       final response = await supabase.functions.invoke(
         'confirm-order',
-        body: {'order_id': code},
+        body: {'order_id': orderId},
       );
 
       if (response.status == 200) {
         // Optimistic UI update
-        ref.read(canteenOrdersProvider.notifier).markConfirmed(code);
+        ref.read(canteenOrdersProvider.notifier).markConfirmed(orderId);
 
         setState(() {
           _message = 'Xác nhận thành công!';
@@ -222,5 +237,3 @@ class _QRScannerScreenState extends ConsumerState<QRScannerScreen> {
     );
   }
 }
-
-
