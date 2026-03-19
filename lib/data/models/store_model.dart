@@ -8,6 +8,8 @@ class StoreModel {
     this.address,
     required this.isActive,
     required this.createdAt,
+    this.avgRating,
+    this.ratingCount,
   });
 
   final String id;
@@ -18,6 +20,8 @@ class StoreModel {
   final String? address;
   final bool isActive;
   final DateTime createdAt;
+  final double? avgRating;
+  final int? ratingCount;
 
   factory StoreModel.fromJson(Map<String, dynamic> json) => StoreModel(
         id: json['id'] as String,
@@ -28,6 +32,8 @@ class StoreModel {
         address: json['address'] as String?,
         isActive: json['is_active'] as bool? ?? true,
         createdAt: DateTime.parse(json['created_at'] as String),
+        avgRating: (json['avg_rating'] as num?)?.toDouble(),
+        ratingCount: (json['rating_count'] as num?)?.toInt(),
       );
 
   Map<String, dynamic> toJson() => {

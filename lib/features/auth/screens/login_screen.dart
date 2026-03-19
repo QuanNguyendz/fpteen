@@ -87,7 +87,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Đặt đồ canteen online',
+                      'Đặt đồ cửa hàng online',
                       style: theme.textTheme.bodyMedium?.copyWith(
                         color: Colors.grey.shade600,
                       ),

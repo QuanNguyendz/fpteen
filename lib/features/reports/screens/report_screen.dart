@@ -73,10 +73,14 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Icon(Icons.report_outlined, size: 60, color: Colors.orange),
+              const Icon(
+                Icons.warning_amber_rounded,
+                size: 60,
+                color: Colors.red,
+              ),
               const SizedBox(height: 12),
               Text(
-                'Phản ánh về canteen',
+                'Phản ánh về cửa hàng',
                 textAlign: TextAlign.center,
                 style: Theme.of(context)
                     .textTheme

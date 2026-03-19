@@ -57,7 +57,7 @@ class OrderRepository {
   }
 
   /// Fetches today's orders for a store (canteen dashboard).
-  /// Only returns orders that have been successfully paid (paid or confirmed).
+  /// Returns orders for canteen dashboard (paid, confirmed, cancelled).
   Future<List<OrderModel>> fetchTodayStoreOrders(String storeId) async {
     try {
       final today = DateTime.now();
@@ -68,7 +68,7 @@ class OrderRepository {
           .select('*, order_items(*, menu_items(name)), users(full_name, phone)')
           .eq('store_id', storeId)
           .gte('created_at', startOfDay)
-          .or('status.eq.paid,status.eq.confirmed')
+          .or('status.eq.paid,status.eq.confirmed,status.eq.cancelled')
           .order('created_at', ascending: false);
       return (data as List)
           .map((e) => OrderModel.fromJson(e as Map<String, dynamic>))

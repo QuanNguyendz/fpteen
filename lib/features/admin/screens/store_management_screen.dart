@@ -16,7 +16,7 @@ class StoreManagementScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Quản lý Canteen'),
+        title: const Text('Quản lý cửa hàng'),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
@@ -33,7 +33,7 @@ class StoreManagementScreen extends ConsumerWidget {
         data: (stores) {
           if (stores.isEmpty) {
             return const EmptyStateWidget(
-              message: 'Chưa có canteen nào.',
+              message: 'Chưa có cửa hàng nào.',
               icon: Icons.store_outlined,
             );
           }
@@ -129,11 +129,11 @@ class _StoreAdminCard extends ConsumerWidget {
                         context: context,
                         builder: (ctx) => AlertDialog(
                           title: Text(store.isActive
-                              ? 'Tắt canteen?'
-                              : 'Bật canteen?'),
+                              ? 'Tắt cửa hàng?'
+                              : 'Bật cửa hàng?'),
                           content: Text(store.isActive
                               ? 'Sinh viên sẽ không thể đặt hàng tại "${store.name}".'
-                              : 'Canteen "${store.name}" sẽ xuất hiện trở lại cho sinh viên.'),
+                              : 'Cửa hàng "${store.name}" sẽ xuất hiện trở lại cho sinh viên.'),
                           actions: [
                             TextButton(
                               onPressed: () =>

@@ -110,7 +110,7 @@ class _StoreProfileScreenState extends ConsumerState<StoreProfileScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Đã cập nhật thông tin canteen!'),
+          content: Text('Đã cập nhật thông tin cửa hàng!'),
           backgroundColor: Colors.green,
         ),
       );
@@ -133,7 +133,7 @@ class _StoreProfileScreenState extends ConsumerState<StoreProfileScreen> {
     final storeAsync = ref.watch(myStoreProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Thông tin Canteen')),
+      appBar: AppBar(title: const Text('Thông tin cửa hàng')),
       body: storeAsync.when(
         loading: () =>
             const Center(child: CircularProgressIndicator()),
@@ -141,7 +141,7 @@ class _StoreProfileScreenState extends ConsumerState<StoreProfileScreen> {
             Center(child: Text('Lỗi tải thông tin: $e')),
         data: (store) {
           if (store == null) {
-            return const Center(child: Text('Không tìm thấy canteen.'));
+            return const Center(child: Text('Không tìm thấy cửa hàng.'));
           }
           return SingleChildScrollView(
             padding: const EdgeInsets.all(20),
@@ -192,11 +192,11 @@ class _StoreProfileScreenState extends ConsumerState<StoreProfileScreen> {
                   TextFormField(
                     controller: _nameCtrl,
                     decoration: const InputDecoration(
-                      labelText: 'Tên canteen *',
+                      labelText: 'Tên cửa hàng *',
                       prefixIcon: Icon(Icons.store_outlined),
                     ),
                     validator: (v) => v == null || v.trim().isEmpty
-                        ? 'Nhập tên canteen'
+                        ? 'Nhập tên cửa hàng'
                         : null,
                   ),
                   const SizedBox(height: 14),

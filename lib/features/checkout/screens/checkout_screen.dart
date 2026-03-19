@@ -29,6 +29,8 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     final cart = ref.watch(cartProvider);
     final checkout = ref.watch(checkoutProvider);
     final theme = Theme.of(context);
+    final selectedStoreId = cart.selectedStoreId;
+    final selectedItems = cart.selectedItems;
 
     ref.listen(checkoutProvider, (prev, next) {
       if (next.error != null) {
@@ -61,10 +63,10 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 padding: const EdgeInsets.all(16),
-                itemCount: cart.items.length,
+                itemCount: selectedItems.length,
                 separatorBuilder: (_, _) => const Divider(height: 16),
                 itemBuilder: (ctx, i) {
-                  final item = cart.items[i];
+                  final item = selectedItems[i];
                   return Row(
                     children: [
                       Expanded(
@@ -109,7 +111,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                     style: theme.textTheme.titleMedium
                         ?.copyWith(fontWeight: FontWeight.w700)),
                 Text(
-                  _vndFormat.format(cart.totalAmount),
+                  _vndFormat.format(cart.selectedTotalAmount),
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w800,
@@ -122,8 +124,9 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
             ElevatedButton(
               onPressed: checkout.isLoading
                   ? null
-                  : () =>
-                      ref.read(checkoutProvider.notifier).placeOrder(),
+                  : (selectedStoreId == null || selectedItems.isEmpty)
+                      ? null
+                      : () => ref.read(checkoutProvider.notifier).placeOrder(),
               child: checkout.isLoading
                   ? const SizedBox(
                       height: 20,

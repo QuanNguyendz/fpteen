@@ -147,7 +147,7 @@ class _OrderCard extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    order.storeName ?? 'Canteen',
+                    order.storeName ?? 'Cửa hàng',
                     style: const TextStyle(
                         fontWeight: FontWeight.w700, fontSize: 15),
                   ),

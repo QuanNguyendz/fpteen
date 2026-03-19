@@ -66,7 +66,7 @@ class _ReportCard extends StatelessWidget {
               children: [
                 Expanded(
                   child: Text(
-                    report.storeName ?? 'Canteen',
+                    report.storeName ?? 'Cửa hàng',
                     style: const TextStyle(
                       fontWeight: FontWeight.w700,
                       fontSize: 15,

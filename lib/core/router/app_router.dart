@@ -19,6 +19,7 @@ import 'package:fpteen/features/checkout/screens/payment_webview_screen.dart';
 import 'package:fpteen/features/home/screens/home_screen.dart';
 import 'package:fpteen/features/invoice/screens/invoice_screen.dart';
 import 'package:fpteen/features/menu/screens/cart_screen.dart';
+import 'package:fpteen/features/feedback/screens/store_feedback_screen.dart';
 import 'package:fpteen/features/menu/screens/store_menu_screen.dart';
 import 'package:fpteen/features/menu_management/screens/add_edit_menu_item_screen.dart';
 import 'package:fpteen/features/menu_management/screens/menu_management_screen.dart';
@@ -120,6 +121,12 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: 'store/:storeId',
             builder: (ctx, state) =>
                 StoreMenuScreen(storeId: state.pathParameters['storeId']!),
+          ),
+          GoRoute(
+            path: 'store/:storeId/feedback',
+            builder: (ctx, state) => StoreFeedbackScreen(
+              storeId: state.pathParameters['storeId']!,
+            ),
           ),
           GoRoute(
             path: 'cart',

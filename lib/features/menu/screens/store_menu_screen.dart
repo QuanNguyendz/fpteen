@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:fpteen/data/models/menu_item_model.dart';
 import 'package:fpteen/data/models/store_model.dart';
+import 'package:fpteen/features/feedback/providers/store_feedback_provider.dart';
 import 'package:fpteen/features/home/providers/stores_provider.dart';
 import 'package:fpteen/features/menu/providers/cart_provider.dart';
 import 'package:fpteen/features/menu/providers/menu_provider.dart';
@@ -33,10 +34,13 @@ class StoreMenuScreen extends ConsumerWidget {
         title: const Text('Menu'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.report_outlined),
-            tooltip: 'Báo cáo canteen',
+            icon: const Icon(
+              Icons.warning_amber_rounded,
+              color: Colors.red,
+            ),
+            tooltip: 'Báo cáo cửa hàng',
             onPressed: () {
-              final storeName = storeAsync.valueOrNull?.name ?? 'Canteen';
+              final storeName = storeAsync.valueOrNull?.name ?? 'Cửa hàng';
               context.push(
                 '/home/report/$storeId',
                 extra: {'storeName': storeName},
@@ -85,6 +89,15 @@ class StoreMenuScreen extends ConsumerWidget {
           ];
           return CustomScrollView(
             slivers: [
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+                  child: _StoreMenuHeader(
+                    storeId: storeId,
+                    storeAsync: storeAsync,
+                  ),
+                ),
+              ),
               // Category chips
               SliverToBoxAdapter(
                 child: SingleChildScrollView(
@@ -118,8 +131,9 @@ class StoreMenuScreen extends ConsumerWidget {
           );
         },
       ),
-      bottomNavigationBar: cart.storeId == storeId && !cart.isEmpty
-          ? _CartBar(cart: cart)
+      bottomNavigationBar:
+          cart.containsStore(storeId) && !cart.isEmpty
+          ? _CartBar(cart: cart, storeId: storeId)
           : null,
     );
   }
@@ -147,6 +161,110 @@ class StoreMenuScreen extends ConsumerWidget {
         ),
       ),
     ];
+  }
+}
+
+class _StoreMenuHeader extends ConsumerWidget {
+  const _StoreMenuHeader({
+    required this.storeId,
+    required this.storeAsync,
+  });
+
+  final String storeId;
+  final AsyncValue<StoreModel> storeAsync;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final statsAsync = ref.watch(storeRatingStatsProvider(storeId));
+
+    return storeAsync.when(
+      loading: () => const Card(
+        child: Padding(
+          padding: EdgeInsets.all(16),
+          child: Center(child: CircularProgressIndicator()),
+        ),
+      ),
+      error: (_, _) => const SizedBox.shrink(),
+      data: (store) {
+        return Card(
+          margin: EdgeInsets.zero,
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: () => context.push('/home/store/$storeId/feedback'),
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: store.logoUrl != null
+                        ? CachedNetworkImage(
+                            imageUrl: store.logoUrl!,
+                            width: 64,
+                            height: 64,
+                            fit: BoxFit.cover,
+                          )
+                        : Container(
+                            width: 64,
+                            height: 64,
+                            color: Colors.grey.shade200,
+                            child: Icon(
+                              Icons.storefront_outlined,
+                              color: Colors.grey.shade400,
+                            ),
+                          ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          store.name,
+                          style: Theme.of(context)
+                              .textTheme
+                              .titleMedium
+                              ?.copyWith(fontWeight: FontWeight.w700),
+                        ),
+                        const SizedBox(height: 4),
+                        statsAsync.when(
+                          loading: () => Text(
+                            'Đang tải đánh giá...',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Colors.grey.shade700,
+                            ),
+                          ),
+                          error: (_, _) => Text(
+                            'Không tải được điểm đánh giá',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Colors.grey.shade600,
+                            ),
+                          ),
+                          data: (stats) => Text(
+                            stats.ratingCount == 0
+                                ? 'Chưa có đánh giá'
+                                : '${stats.avgRating.toStringAsFixed(1)} ★ (${stats.ratingCount} lượt)',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Colors.grey.shade700,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Icon(Icons.chevron_right, color: Colors.grey.shade600),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
   }
 }
 
@@ -302,8 +420,9 @@ class _QuantityControl extends ConsumerWidget {
 }
 
 class _CartBar extends StatelessWidget {
-  const _CartBar({required this.cart});
+  const _CartBar({required this.cart, required this.storeId});
   final CartState cart;
+  final String storeId;
 
   @override
   Widget build(BuildContext context) {
@@ -322,13 +441,13 @@ class _CartBar extends StatelessWidget {
                   color: Colors.white.withValues(alpha: 0.25),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Text('${cart.totalQuantity} món',
+                child: Text('${cart.totalQuantityForStore(storeId)} món',
                     style: const TextStyle(fontWeight: FontWeight.w600)),
               ),
               const Text('Xem giỏ hàng',
                   style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
               Text(
-                _vndFormat.format(cart.totalAmount),
+                _vndFormat.format(cart.totalAmountForStore(storeId)),
                 style: const TextStyle(fontWeight: FontWeight.w600),
               ),
             ],

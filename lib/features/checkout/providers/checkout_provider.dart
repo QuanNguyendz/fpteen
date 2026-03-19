@@ -57,7 +57,9 @@ class CheckoutNotifier extends StateNotifier<CheckoutState> {
 
   Future<void> placeOrder() async {
     final cart = _ref.read(cartProvider);
-    if (cart.isEmpty || cart.storeId == null) return;
+    if (cart.isEmpty || cart.selectedStoreId == null || cart.selectedItems.isEmpty) {
+      return;
+    }
 
     state = state.copyWith(isLoading: true, clearError: true);
 
@@ -65,8 +67,8 @@ class CheckoutNotifier extends StateNotifier<CheckoutState> {
       // Step 1: Create order via RPC (server-side price validation)
       final orderRepo = _ref.read(orderRepositoryProvider);
       final orderId = await orderRepo.createOrder(
-        storeId: cart.storeId!,
-        items: cart.items
+        storeId: cart.selectedStoreId!,
+        items: cart.selectedItems
             .map((i) => {
                   'menu_item_id': i.menuItem.id,
                   'quantity': i.quantity,

@@ -67,7 +67,7 @@ class _CreateStoreOwnerScreenState
       if (next.success) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Tạo tài khoản canteen thành công!'),
+            content: Text('Tạo tài khoản cửa hàng thành công!'),
             backgroundColor: Colors.green,
           ),
         );
@@ -76,7 +76,7 @@ class _CreateStoreOwnerScreenState
     });
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Tạo tài khoản Canteen')),
+      appBar: AppBar(title: const Text('Tạo tài khoản cửa hàng')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Form(
@@ -93,7 +93,7 @@ class _CreateStoreOwnerScreenState
                 controller: _fullNameCtrl,
                 textCapitalization: TextCapitalization.words,
                 decoration: const InputDecoration(
-                  labelText: 'Họ tên chủ canteen *',
+                  labelText: 'Họ tên chủ cửa hàng *',
                   prefixIcon: Icon(Icons.person_outline),
                 ),
                 validator: (v) => v == null || v.trim().isEmpty

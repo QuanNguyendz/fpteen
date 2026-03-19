@@ -30,13 +30,13 @@ class InvoiceScreen extends ConsumerWidget {
         actions: [
           IconButton(
             icon: const Icon(Icons.report_outlined),
-            tooltip: 'Báo cáo canteen',
+            tooltip: 'Báo cáo cửa hàng',
             onPressed: () {
               final order = invoiceAsync.valueOrNull;
               if (order == null) return;
               context.push(
                 '/home/report/${order.storeId}',
-                extra: {'storeName': order.storeName ?? 'Canteen'},
+                extra: {'storeName': order.storeName ?? 'Cửa hàng'},
               );
             },
           ),
@@ -166,7 +166,7 @@ class _InvoiceContentState extends State<_InvoiceContent> {
                             color: Colors.green),
                       ),
                       Text(
-                        'Mang mã QR đến canteen để nhận món',
+                        'Mang mã QR đến cửa hàng để nhận món',
                         style: TextStyle(
                             fontSize: 13, color: Colors.green.shade700),
                       ),
@@ -238,7 +238,7 @@ class _InvoiceContentState extends State<_InvoiceContent> {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          'FPTeen – Đặt đồ ăn canteen',
+                          'FPTeen – Đặt đồ ăn cửa hàng',
                           style: TextStyle(
                               fontSize: 11, color: Colors.grey.shade500),
                         ),
@@ -297,7 +297,7 @@ class _InvoiceContentState extends State<_InvoiceContent> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _DetailRow(
-                    label: 'Canteen',
+                    label: 'Cửa hàng',
                     value: order.storeName ?? '—',
                   ),
                   _DetailRow(

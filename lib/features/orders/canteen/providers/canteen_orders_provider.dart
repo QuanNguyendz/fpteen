@@ -61,6 +61,19 @@ class CanteenOrdersNotifier
     );
   }
 
+  /// Called after store cancels an already completed ("confirmed") order.
+  /// Analytics RPC only counts orders with status 'paid'/'confirmed', so
+  /// setting status='cancelled' will automatically subtract revenue.
+  void markCancelled(String orderId) {
+    final current = state.valueOrNull;
+    if (current == null) return;
+    state = AsyncValue.data(
+      current
+          .map((o) => o.id == orderId ? o.copyWith(status: 'cancelled') : o)
+          .toList(),
+    );
+  }
+
   @override
   void dispose() {
     _supabase.removeChannel(_channel!);

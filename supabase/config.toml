@@ -9,3 +9,6 @@ verify_jwt = false
 
 [functions.confirm-order]
 verify_jwt = false
+
+[functions.cancel-order]
+verify_jwt = false

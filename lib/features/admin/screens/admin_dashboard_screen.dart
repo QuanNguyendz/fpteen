@@ -94,7 +94,7 @@ class AdminDashboardScreen extends ConsumerWidget {
                   childAspectRatio: 1.15,
                   children: [
                     _StatCard(
-                      label: 'Tổng canteen',
+                      label: 'Tổng cửa hàng',
                       value: '${stats.totalStores}',
                       sub: '${stats.activeStores} đang hoạt động',
                       icon: Icons.store_outlined,
@@ -103,7 +103,7 @@ class AdminDashboardScreen extends ConsumerWidget {
                     _StatCard(
                       label: 'Đơn hôm nay',
                       value: '${stats.todayOrders}',
-                      sub: 'Tất cả canteen',
+                      sub: 'Tất cả cửa hàng',
                       icon: Icons.receipt_long_outlined,
                       color: Colors.green,
                     ),
@@ -117,7 +117,7 @@ class AdminDashboardScreen extends ConsumerWidget {
                           : Colors.grey,
                     ),
                     _StatCard(
-                      label: 'Canteen tắt',
+                      label: 'Cửa hàng tắt',
                       value: '${stats.totalStores - stats.activeStores}',
                       sub: 'Đang vô hiệu hóa',
                       icon: Icons.store_mall_directory_outlined,
@@ -135,16 +135,16 @@ class AdminDashboardScreen extends ConsumerWidget {
               const SizedBox(height: 12),
               _ActionCard(
                 icon: Icons.store_outlined,
-                title: 'Quản lý Canteen',
-                subtitle: 'Xem, bật/tắt các canteen',
+                title: 'Quản lý cửa hàng',
+                subtitle: 'Xem, bật/tắt các cửa hàng',
                 color: Colors.blue,
                 onTap: () => context.push('/admin/stores'),
               ),
               const SizedBox(height: 10),
               _ActionCard(
                 icon: Icons.person_add_outlined,
-                title: 'Tạo tài khoản Canteen',
-                subtitle: 'Thêm chủ canteen mới vào hệ thống',
+                title: 'Tạo tài khoản cửa hàng',
+                subtitle: 'Thêm chủ cửa hàng mới vào hệ thống',
                 color: Colors.green,
                 onTap: () => context.push('/admin/create-owner'),
               ),
@@ -152,7 +152,7 @@ class AdminDashboardScreen extends ConsumerWidget {
               _ActionCard(
                 icon: Icons.report_problem_outlined,
                 title: 'Báo cáo từ sinh viên',
-                subtitle: 'Xem và xử lý phản ánh về canteen',
+                subtitle: 'Xem và xử lý phản ánh về cửa hàng',
                 color: Colors.orange,
                 onTap: () => context.push('/admin/reports'),
               ),

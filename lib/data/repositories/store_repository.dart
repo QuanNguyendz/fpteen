@@ -9,7 +9,8 @@ class StoreRepository {
 
   Future<List<StoreModel>> fetchActiveStores() async {
     try {
-      final data = await _supabase.rpc('get_active_stores_with_stats');
+      final data =
+          await _supabase.rpc('get_active_stores_with_stats_v2');
       return (data as List).map((e) => StoreModel.fromJson(e as Map<String, dynamic>)).toList();
     } catch (e) {
       throw StoreException(parseSupabaseError(e));

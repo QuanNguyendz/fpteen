@@ -122,7 +122,7 @@ class _ContinuePaymentScreenState extends ConsumerState<ContinuePaymentScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          order.storeName ?? 'Canteen',
+                          order.storeName ?? 'cửa hàng',
                           style: theme.textTheme.titleMedium
                               ?.copyWith(fontWeight: FontWeight.w700),
                         ),

@@ -113,7 +113,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ),
                 const SizedBox(height: 4),
                 const Text(
-                  'Chọn canteen và đặt món ngay!',
+                  'Chọn cửa hàng và đặt món ngay!',
                   style: TextStyle(color: Colors.white70, fontSize: 14),
                 ),
               ],
@@ -122,7 +122,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Text(
-              'Canteen có mặt',
+              'Cửa hàng có mặt',
               style: Theme.of(context)
                   .textTheme
                   .titleMedium
@@ -140,7 +140,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               data: (stores) {
                 if (stores.isEmpty) {
                   return const EmptyStateWidget(
-                    message: 'Chưa có canteen nào hoạt động.',
+                    message: 'Chưa có cửa hàng nào hoạt động.',
                     icon: Icons.store_outlined,
                   );
                 }
@@ -187,6 +187,9 @@ class _StoreCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final avgRating = store.avgRating ?? 0;
+    final ratingCount = store.ratingCount ?? 0;
+
     return Card(
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
@@ -217,24 +220,36 @@ class _StoreCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Expanded(
-                        child: Text(
-                          store.name,
-                          style: Theme.of(context)
-                              .textTheme
-                              .titleMedium
-                              ?.copyWith(fontWeight: FontWeight.w700),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              store.name,
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .titleMedium
+                                  ?.copyWith(fontWeight: FontWeight.w700),
+                            ),
+                            if (ratingCount > 0) ...[
+                              const SizedBox(height: 4),
+                              _StoreRating(avgRating: avgRating, ratingCount: ratingCount),
+                            ],
+                          ],
                         ),
                       ),
                       const SizedBox(width: 8),
                       IconButton(
-                        tooltip: 'Báo cáo canteen',
+                        tooltip: 'Báo cáo cửa hàng',
                         onPressed: () {
                           context.push(
                             '/home/report/${store.id}',
                             extra: {'storeName': store.name},
                           );
                         },
-                        icon: const Icon(Icons.report_outlined),
+                        icon: const Icon(
+                          Icons.warning_amber_rounded,
+                          color: Colors.red,
+                        ),
                       ),
                     ],
                   ),
@@ -279,6 +294,9 @@ class _StoreGridCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final avgRating = store.avgRating ?? 0;
+    final ratingCount = store.ratingCount ?? 0;
+
     return InkWell(
       borderRadius: BorderRadius.circular(16),
       onTap: () => context.push('/home/store/${store.id}'),
@@ -307,6 +325,14 @@ class _StoreGridCard extends StatelessWidget {
                 .bodyMedium
                 ?.copyWith(fontWeight: FontWeight.w700),
           ),
+          if (ratingCount > 0) ...[
+            const SizedBox(height: 4),
+            _StoreRating(
+              avgRating: avgRating,
+              ratingCount: ratingCount,
+              compact: true,
+            ),
+          ],
           if (store.address != null)
             Text(
               store.address!,
@@ -328,6 +354,41 @@ class _PlaceholderImage extends StatelessWidget {
       width: double.infinity,
       color: Colors.grey.shade200,
       child: Icon(Icons.restaurant, size: 48, color: Colors.grey.shade400),
+    );
+  }
+}
+
+class _StoreRating extends StatelessWidget {
+  const _StoreRating({
+    required this.avgRating,
+    required this.ratingCount,
+    this.compact = false,
+  });
+
+  final double avgRating;
+  final int ratingCount;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    final starColor = Colors.amber.shade700;
+    final textColor = Colors.grey.shade700;
+    final fontSize = compact ? 11.0 : 12.0;
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(Icons.star, size: compact ? 14 : 15, color: starColor),
+        const SizedBox(width: 4),
+        Text(
+          '${avgRating.toStringAsFixed(1)} ($ratingCount)',
+          style: TextStyle(
+            fontSize: fontSize,
+            color: textColor,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ],
     );
   }
 }

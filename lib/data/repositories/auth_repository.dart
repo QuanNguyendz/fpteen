@@ -1,4 +1,5 @@
 import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart';
 import 'package:fpteen/core/constants/app_constants.dart';
 import 'package:fpteen/core/errors/app_exception.dart';
 import 'package:fpteen/data/models/user_model.dart';
@@ -44,8 +45,8 @@ class AuthRepository {
     try {
       const webClientId = AppConstants.googleWebClientId;
 
-      print('🟡 ===== BẮT ĐẦU ĐĂNG NHẬP GOOGLE (WEB OAUTH) =====');
-      print('🟡 Web Client ID: $webClientId');
+      debugPrint('🟡 ===== BẮT ĐẦU ĐĂNG NHẬP GOOGLE (WEB OAUTH) =====');
+      debugPrint('🟡 Web Client ID: $webClientId');
 
       final GoogleSignIn googleSignIn = GoogleSignIn(
         clientId: webClientId,
@@ -55,11 +56,11 @@ class AuthRepository {
       final googleUser = await googleSignIn.signIn();
 
       if (googleUser == null) {
-        print('🟡 Người dùng đã hủy đăng nhập');
+        debugPrint('🟡 Người dùng đã hủy đăng nhập');
         return;
       }
 
-      print('🟢 ĐĂNG NHẬP GOOGLE THÀNH CÔNG');
+      debugPrint('🟢 ĐĂNG NHẬP GOOGLE THÀNH CÔNG');
 
       final googleAuth = await googleUser.authentication;
       final accessToken = googleAuth.accessToken;
@@ -75,16 +76,16 @@ class AuthRepository {
         accessToken: accessToken,
       );
 
-      print('🟢 ĐĂNG NHẬP SUPABASE THÀNH CÔNG!');
+      debugPrint('🟢 ĐĂNG NHẬP SUPABASE THÀNH CÔNG!');
 
     } on PlatformException catch (e) {
-      print('🔴 ===== LỖI PLATFORM EXCEPTION =====');
-      print('🔴 Code: ${e.code}');
-      print('🔴 Message: ${e.message}');
+      debugPrint('🔴 ===== LỖI PLATFORM EXCEPTION =====');
+      debugPrint('🔴 Code: ${e.code}');
+      debugPrint('🔴 Message: ${e.message}');
       throw AppAuthException('Google Sign-In thất bại: ${e.message}');
     } catch (e) {
-      print('🔴 ===== LỖI KHÔNG XÁC ĐỊNH =====');
-      print('🔴 $e');
+      debugPrint('🔴 ===== LỖI KHÔNG XÁC ĐỊNH =====');
+      debugPrint('🔴 $e');
       throw AppAuthException(e.toString());
     }
   }
@@ -134,18 +135,18 @@ class AuthRepository {
 
   Future<void> signOut() async {
     try {
-      print('🟡 Đang đăng xuất...');
+      debugPrint('🟡 Đang đăng xuất...');
 
       // Đăng xuất khỏi Google
       await GoogleSignIn().signOut();
-      print('🟢 Đã đăng xuất Google');
+      debugPrint('🟢 Đã đăng xuất Google');
 
       // Đăng xuất khỏi Supabase
       await _supabase.auth.signOut();
-      print('🟢 Đã đăng xuất Supabase');
+      debugPrint('🟢 Đã đăng xuất Supabase');
 
     } catch (e) {
-      print('🔴 Lỗi đăng xuất: $e');
+      debugPrint('🔴 Lỗi đăng xuất: $e');
       throw AppAuthException('Đăng xuất thất bại: $e');
     }
   }

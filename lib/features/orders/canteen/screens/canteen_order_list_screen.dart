@@ -25,9 +25,9 @@ class CanteenOrderListScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: storeAsync.when(
-          data: (s) => Text(s?.name ?? 'Canteen'),
-          loading: () => const Text('Canteen'),
-          error: (_, _) => const Text('Canteen'),
+          data: (s) => Text(s?.name ?? 'Cửa hàng'),
+          loading: () => const Text('Cửa hàng'),
+          error: (_, _) => const Text('Cửa hàng'),
         ),
         actions: [
           IconButton(
@@ -42,7 +42,7 @@ class CanteenOrderListScreen extends ConsumerWidget {
           ),
           IconButton(
             icon: const Icon(Icons.store_outlined),
-            tooltip: 'Thông tin canteen',
+            tooltip: 'Thông tin cửa hàng',
             onPressed: () => context.push('/canteen/profile'),
           ),
           IconButton(
@@ -152,7 +152,9 @@ class _CanteenOrderCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final isConfirmed = order.isConfirmed;
+    final isCancelled = order.isCancelled;
     final canManualConfirm = order.isPaid && !isConfirmed;
+    final canCancel = isConfirmed;
 
     return Card(
       child: Padding(
@@ -244,19 +246,24 @@ class _CanteenOrderCard extends ConsumerWidget {
                       border: Border.all(
                         color: isConfirmed
                             ? Colors.green
-                            : canManualConfirm
-                                ? theme.colorScheme.primary
-                                : Colors.grey.shade400,
+                            : isCancelled
+                                ? theme.colorScheme.error
+                                : canManualConfirm
+                                    ? theme.colorScheme.primary
+                                    : Colors.grey.shade400,
                         width: 2,
                       ),
                     ),
                     child: isConfirmed
                         ? const Icon(Icons.check,
                             color: Colors.white, size: 16)
-                        : canManualConfirm
-                            ? Icon(Icons.check,
-                                color: theme.colorScheme.primary, size: 16)
-                            : null,
+                        : isCancelled
+                            ? Icon(Icons.close,
+                                color: theme.colorScheme.error, size: 16)
+                            : canManualConfirm
+                                ? Icon(Icons.check,
+                                    color: theme.colorScheme.primary, size: 16)
+                                : null,
                   ),
                 ),
                 const SizedBox(width: 10),
@@ -266,10 +273,10 @@ class _CanteenOrderCard extends ConsumerWidget {
                     style: TextStyle(
                       fontWeight: FontWeight.w700,
                       fontSize: 15,
-                      decoration: isConfirmed
+                      decoration: (isConfirmed || isCancelled)
                           ? TextDecoration.lineThrough
                           : null,
-                      color: isConfirmed ? Colors.grey : null,
+                      color: (isConfirmed || isCancelled) ? Colors.grey : null,
                     ),
                   ),
                 ),
@@ -290,7 +297,7 @@ class _CanteenOrderCard extends ConsumerWidget {
                         '• ${item.menuItemName ?? 'Món ăn'} x${item.quantity}',
                         style: TextStyle(
                           fontSize: 13,
-                          color: isConfirmed
+                          color: (isConfirmed || isCancelled)
                               ? Colors.grey.shade400
                               : Colors.grey.shade700,
                         ),
@@ -303,7 +310,7 @@ class _CanteenOrderCard extends ConsumerWidget {
                         _vndFormat.format(order.totalAmount),
                         style: TextStyle(
                           fontWeight: FontWeight.w700,
-                          color: isConfirmed
+                          color: (isConfirmed || isCancelled)
                               ? Colors.grey
                               : theme.colorScheme.primary,
                         ),
@@ -312,17 +319,27 @@ class _CanteenOrderCard extends ConsumerWidget {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 10, vertical: 3),
                         decoration: BoxDecoration(
-                          color: isConfirmed
-                              ? Colors.green.withValues(alpha: 0.1)
-                              : Colors.orange.withValues(alpha: 0.1),
+                          color: isCancelled
+                              ? Colors.red.withValues(alpha: 0.1)
+                              : isConfirmed
+                                  ? Colors.green.withValues(alpha: 0.1)
+                                  : Colors.orange.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(
-                          isConfirmed ? 'Đã lấy món' : 'Chờ lấy',
+                          isCancelled
+                              ? 'Đã hủy đơn'
+                              : isConfirmed
+                                  ? 'Đã lấy món'
+                                  : 'Chờ lấy',
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
-                            color: isConfirmed ? Colors.green : Colors.orange,
+                            color: isCancelled
+                                ? Colors.red
+                                : isConfirmed
+                                    ? Colors.green
+                                    : Colors.orange,
                           ),
                         ),
                       ),
@@ -331,6 +348,90 @@ class _CanteenOrderCard extends ConsumerWidget {
                 ],
               ),
             ),
+            if (canCancel) ...[
+              const SizedBox(height: 12),
+              Align(
+                alignment: Alignment.centerRight,
+                child: OutlinedButton.icon(
+                  onPressed: () async {
+                    final ok = await showDialog<bool>(
+                      context: context,
+                      builder: (ctx) => AlertDialog(
+                        title: const Text('Hủy đơn đã lấy món?'),
+                        content: const Text(
+                          'Bạn muốn hủy đơn này. Hoàn tiền sẽ được xử lý bởi bên ngoài thực tế của bạn.',
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.of(ctx).pop(false),
+                            child: const Text('Không'),
+                          ),
+                          TextButton(
+                            onPressed: () => Navigator.of(ctx).pop(true),
+                            child: const Text('Hủy đơn'),
+                          ),
+                        ],
+                      ),
+                    );
+                    if (ok != true) return;
+
+                    try {
+                      final supabase = ref.read(supabaseClientProvider);
+                      final response = await supabase.functions.invoke(
+                        'cancel-order',
+                        body: {'order_id': order.id},
+                      );
+
+                      if (response.status == 200) {
+                        ref
+                            .read(canteenOrdersProvider.notifier)
+                            .markCancelled(order.id);
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Đã hủy đơn.'),
+                              backgroundColor: Colors.orange,
+                            ),
+                          );
+                        }
+                      } else {
+                        final errorMsg = response.data?['error'] ??
+                            response.data?['current_status'] ??
+                            'Lỗi hủy đơn';
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(errorMsg.toString()),
+                              backgroundColor: theme.colorScheme.error,
+                            ),
+                          );
+                        }
+                      }
+                    } catch (e) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              'Hủy đơn thất bại: ${e.toString()}',
+                            ),
+                            backgroundColor: theme.colorScheme.error,
+                          ),
+                        );
+                      }
+                    }
+                  },
+                  icon: Icon(Icons.cancel_outlined,
+                      color: theme.colorScheme.error),
+                  label: Text(
+                    'Hủy đơn',
+                    style: TextStyle(
+                      color: theme.colorScheme.error,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ],
         ),
       ),
