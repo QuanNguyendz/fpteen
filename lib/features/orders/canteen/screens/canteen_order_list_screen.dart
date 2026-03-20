@@ -281,7 +281,7 @@ class _CanteenOrderCard extends ConsumerWidget {
                   ),
                 ),
                 Text(
-                  _timeFormat.format(order.createdAt.toLocal()),
+                  _timeFormat.format((order.pickupAt ?? order.createdAt).toLocal()),
                   style: TextStyle(
                       fontSize: 12, color: Colors.grey.shade500),
                 ),

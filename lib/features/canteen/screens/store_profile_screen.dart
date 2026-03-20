@@ -21,16 +21,38 @@ class _StoreProfileScreenState extends ConsumerState<StoreProfileScreen> {
   final _nameCtrl = TextEditingController();
   final _descCtrl = TextEditingController();
   final _addressCtrl = TextEditingController();
+  final _slotSizeCtrl = TextEditingController();
+  final _maxOrdersCtrl = TextEditingController();
+  final _openingTimeCtrl = TextEditingController();
+  final _closingTimeCtrl = TextEditingController();
   File? _logoFile;
   bool _isSaving = false;
   StoreModel? _store;
   final _picker = ImagePicker();
+
+  TimeOfDay _openingTime = const TimeOfDay(hour: 10, minute: 0);
+  TimeOfDay _closingTime = const TimeOfDay(hour: 22, minute: 0);
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) => _loadStore());
   }
+
+  TimeOfDay _parseTimeOfDay(String? value, {required TimeOfDay fallback}) {
+    if (value == null || value.trim().isEmpty) return fallback;
+    // Expected DB format: "HH:mm:ss" (or at least "HH:mm")
+    final parts = value.split(':');
+    if (parts.length < 2) return fallback;
+    final h = int.tryParse(parts[0]) ?? fallback.hour;
+    final m = int.tryParse(parts[1]) ?? fallback.minute;
+    return TimeOfDay(hour: h, minute: m);
+  }
+
+  String _formatTimeLabel(TimeOfDay t) =>
+      '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
+
+  String _formatTimeDb(TimeOfDay t) => '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}:00';
 
   Future<void> _loadStore() async {
     final storeAsync = ref.read(myStoreProvider);
@@ -41,6 +63,21 @@ class _StoreProfileScreenState extends ConsumerState<StoreProfileScreen> {
           _nameCtrl.text = store.name;
           _descCtrl.text = store.description ?? '';
           _addressCtrl.text = store.address ?? '';
+          final slotSize = store.slotSizeMinutes ?? 15;
+          final maxOrders = store.maxOrdersPerSlot ?? 20;
+          _slotSizeCtrl.text = slotSize.toString();
+          _maxOrdersCtrl.text = maxOrders.toString();
+
+          _openingTime = _parseTimeOfDay(
+            store.openingTime,
+            fallback: const TimeOfDay(hour: 10, minute: 0),
+          );
+          _closingTime = _parseTimeOfDay(
+            store.closingTime,
+            fallback: const TimeOfDay(hour: 22, minute: 0),
+          );
+          _openingTimeCtrl.text = _formatTimeLabel(_openingTime);
+          _closingTimeCtrl.text = _formatTimeLabel(_closingTime);
         });
       }
     });
@@ -51,6 +88,10 @@ class _StoreProfileScreenState extends ConsumerState<StoreProfileScreen> {
     _nameCtrl.dispose();
     _descCtrl.dispose();
     _addressCtrl.dispose();
+    _slotSizeCtrl.dispose();
+    _maxOrdersCtrl.dispose();
+    _openingTimeCtrl.dispose();
+    _closingTimeCtrl.dispose();
     super.dispose();
   }
 
@@ -103,6 +144,10 @@ class _StoreProfileScreenState extends ConsumerState<StoreProfileScreen> {
             ? null
             : _addressCtrl.text.trim(),
         'logo_url': logoUrl,
+        'slot_size_minutes': int.parse(_slotSizeCtrl.text.trim()),
+        'max_orders_per_slot': int.parse(_maxOrdersCtrl.text.trim()),
+        'opening_time': _formatTimeDb(_openingTime),
+        'closing_time': _formatTimeDb(_closingTime),
       });
 
       ref.invalidate(myStoreProvider);
@@ -217,7 +262,94 @@ class _StoreProfileScreenState extends ConsumerState<StoreProfileScreen> {
                       prefixIcon: Icon(Icons.location_on_outlined),
                     ),
                   ),
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 24),
+                  Text(
+                    'Công suất theo khung giờ',
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextFormField(
+                          controller: _slotSizeCtrl,
+                          keyboardType: TextInputType.number,
+                          decoration: const InputDecoration(
+                            labelText: 'Slot size (phút)',
+                            prefixIcon: Icon(Icons.schedule_outlined),
+                          ),
+                          validator: (v) {
+                            final n = int.tryParse(v?.trim() ?? '');
+                            if (n == null || n <= 0) {
+                              return 'Nhập số phút hợp lệ (>0)';
+                            }
+                            return null;
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: TextFormField(
+                          controller: _maxOrdersCtrl,
+                          keyboardType: TextInputType.number,
+                          decoration: const InputDecoration(
+                            labelText: 'Max đơn/slot',
+                            prefixIcon: Icon(Icons.numbers_outlined),
+                          ),
+                          validator: (v) {
+                            final n = int.tryParse(v?.trim() ?? '');
+                            if (n == null || n <= 0) {
+                              return 'Nhập số đơn hợp lệ (>0)';
+                            }
+                            return null;
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: _openingTimeCtrl,
+                    readOnly: true,
+                    decoration: const InputDecoration(
+                      labelText: 'Giờ mở cửa',
+                      prefixIcon: Icon(Icons.access_time_outlined),
+                    ),
+                    onTap: () async {
+                      final picked = await showTimePicker(
+                        context: context,
+                        initialTime: _openingTime,
+                      );
+                      if (picked == null) return;
+                      setState(() {
+                        _openingTime = picked;
+                        _openingTimeCtrl.text = _formatTimeLabel(_openingTime);
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: _closingTimeCtrl,
+                    readOnly: true,
+                    decoration: const InputDecoration(
+                      labelText: 'Giờ đóng cửa',
+                      prefixIcon: Icon(Icons.access_time_outlined),
+                    ),
+                    onTap: () async {
+                      final picked = await showTimePicker(
+                        context: context,
+                        initialTime: _closingTime,
+                      );
+                      if (picked == null) return;
+                      setState(() {
+                        _closingTime = picked;
+                        _closingTimeCtrl.text = _formatTimeLabel(_closingTime);
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 28),
                   ElevatedButton(
                     onPressed: _isSaving ? null : _save,
                     child: _isSaving

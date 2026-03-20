@@ -10,6 +10,10 @@ class StoreModel {
     required this.createdAt,
     this.avgRating,
     this.ratingCount,
+    this.slotSizeMinutes,
+    this.maxOrdersPerSlot,
+    this.openingTime,
+    this.closingTime,
   });
 
   final String id;
@@ -22,6 +26,11 @@ class StoreModel {
   final DateTime createdAt;
   final double? avgRating;
   final int? ratingCount;
+  final int? slotSizeMinutes;
+  final int? maxOrdersPerSlot;
+  // Stored in DB as TIME (e.g. "10:00:00") and parsed as string here.
+  final String? openingTime;
+  final String? closingTime;
 
   factory StoreModel.fromJson(Map<String, dynamic> json) => StoreModel(
         id: json['id'] as String,
@@ -34,6 +43,10 @@ class StoreModel {
         createdAt: DateTime.parse(json['created_at'] as String),
         avgRating: (json['avg_rating'] as num?)?.toDouble(),
         ratingCount: (json['rating_count'] as num?)?.toInt(),
+        slotSizeMinutes: (json['slot_size_minutes'] as num?)?.toInt(),
+        maxOrdersPerSlot: (json['max_orders_per_slot'] as num?)?.toInt(),
+        openingTime: json['opening_time'] as String?,
+        closingTime: json['closing_time'] as String?,
       );
 
   Map<String, dynamic> toJson() => {
@@ -45,6 +58,10 @@ class StoreModel {
         'address': address,
         'is_active': isActive,
         'created_at': createdAt.toIso8601String(),
+        'slot_size_minutes': slotSizeMinutes,
+        'max_orders_per_slot': maxOrdersPerSlot,
+        'opening_time': openingTime,
+        'closing_time': closingTime,
       };
 }
 

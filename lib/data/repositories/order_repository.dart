@@ -2,6 +2,18 @@ import 'package:fpteen/core/errors/app_exception.dart';
 import 'package:fpteen/data/models/order_model.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+class CreateOrderScheduledResult {
+  const CreateOrderScheduledResult({
+    required this.orderId,
+    required this.assignedPickupAt,
+    required this.rescheduled,
+  });
+
+  final String orderId;
+  final DateTime assignedPickupAt;
+  final bool rescheduled;
+}
+
 class OrderRepository {
   OrderRepository(this._supabase);
 
@@ -16,13 +28,61 @@ class OrderRepository {
     required List<Map<String, dynamic>> items,
     String? note,
   }) async {
+    final result = await createOrderScheduled(
+      storeId: storeId,
+      items: items,
+      note: note,
+      pickupAtRequested: null,
+    );
+    return result.orderId;
+  }
+
+  /// Creates an order with pickup time-slot assignment (capacity enforced).
+  ///
+  /// If the requested slot is full, server will automatically reschedule.
+  Future<CreateOrderScheduledResult> createOrderScheduled({
+    required String storeId,
+    required List<Map<String, dynamic>> items,
+    String? note,
+    DateTime? pickupAtRequested,
+  }) async {
     try {
-      final orderId = await _supabase.rpc('create_order_with_items', params: {
-        'p_store_id': storeId,
-        'p_items': items,
-        'p_note': note,
-      });
-      return orderId as String;
+      final raw = await _supabase.rpc(
+        'create_order_with_items_and_pickup',
+        params: {
+          'p_store_id': storeId,
+          'p_items': items,
+          'p_note': note,
+          'p_pickup_at_requested': pickupAtRequested?.toUtc().toIso8601String(),
+        },
+      );
+
+      Map<String, dynamic> row;
+      if (raw is List) {
+        if (raw.isEmpty) {
+          throw OrderException('Không thể tạo đơn hàng.');
+        }
+        row = raw.first as Map<String, dynamic>;
+      } else if (raw is Map) {
+        row = raw as Map<String, dynamic>;
+      } else {
+        throw OrderException('Không thể đọc kết quả tạo đơn.');
+      }
+
+      final orderId = row['order_id'] as String? ?? row['id'] as String?;
+      final assignedPickupAtStr =
+          row['assigned_pickup_at'] as String? ?? row['pickup_at'] as String?;
+      final rescheduled = (row['rescheduled'] as bool?) ?? false;
+
+      if (orderId == null || assignedPickupAtStr == null) {
+        throw OrderException('Kết quả tạo đơn không hợp lệ.');
+      }
+
+      return CreateOrderScheduledResult(
+        orderId: orderId,
+        assignedPickupAt: DateTime.parse(assignedPickupAtStr),
+        rescheduled: rescheduled,
+      );
     } catch (e) {
       throw OrderException(parseSupabaseError(e));
     }
@@ -69,6 +129,9 @@ class OrderRepository {
           .eq('store_id', storeId)
           .gte('created_at', startOfDay)
           .or('status.eq.paid,status.eq.confirmed,status.eq.cancelled')
+          // Sort by pickup time to help canteen prep earlier and
+          // avoid rush when many orders are due at the same moment.
+          .order('pickup_at', ascending: true)
           .order('created_at', ascending: false);
       return (data as List)
           .map((e) => OrderModel.fromJson(e as Map<String, dynamic>))
@@ -87,6 +150,7 @@ class OrderRepository {
         .from('orders')
         .stream(primaryKey: ['id'])
         .eq('store_id', storeId)
+        .order('pickup_at', ascending: true)
         .order('created_at', ascending: false)
         .map((rows) => rows
             .where((r) => (r['created_at'] as String).compareTo(startOfDay) >= 0)

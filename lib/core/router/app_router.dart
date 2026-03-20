@@ -233,6 +233,13 @@ final routerProvider = Provider<GoRouter>((ref) {
             builder: (ctx, state) => const QRScannerScreen(),
           ),
           GoRoute(
+            path: 'invoice/:orderId',
+            builder: (ctx, state) => InvoiceScreen(
+              orderId: state.pathParameters['orderId']!,
+              isStoreFlow: true,
+            ),
+          ),
+          GoRoute(
             path: 'profile',
             builder: (ctx, state) => const StoreProfileScreen(),
           ),

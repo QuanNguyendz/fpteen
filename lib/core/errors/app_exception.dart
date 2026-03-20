@@ -45,6 +45,15 @@ String parseSupabaseError(Object error) {
   if (msg.contains('network') || msg.contains('SocketException')) {
     return 'Không có kết nối mạng. Vui lòng thử lại.';
   }
+  if (msg.contains('No available pickup slots')) {
+    return 'Quầy đang bận. Hệ thống sẽ dời giờ nhận cho đơn của bạn.';
+  }
+  if (msg.contains('Store not found or inactive')) {
+    return 'Cửa hàng hiện không khả dụng. Vui lòng chọn cửa hàng khác.';
+  }
+  if (msg.contains('No valid available items')) {
+    return 'Không thể tạo đơn do món trong giỏ hàng không còn khả dụng.';
+  }
   return 'Đã xảy ra lỗi. Vui lòng thử lại.';
 }
 

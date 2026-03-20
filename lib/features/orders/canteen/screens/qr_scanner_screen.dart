@@ -82,9 +82,19 @@ class _QRScannerScreenState extends ConsumerState<QRScannerScreen> {
           _isProcessing = false;
         });
 
-        // Auto navigate back after success
-        await Future.delayed(const Duration(seconds: 2));
-        if (mounted) context.pop();
+        if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Xác nhận thành công!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+
+        // After success: show the scanned e-invoice detail screen.
+        // When the user presses back/exit, they will return to the store invoice list screen (`/canteen`).
+        await Future.delayed(const Duration(milliseconds: 800));
+        if (!mounted) return;
+        context.go('/canteen/invoice/$orderId');
       } else {
         final errorMsg = response.data?['error'] ??
             response.data?['current_status'] ?? 'Lỗi xác nhận đơn hàng';

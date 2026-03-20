@@ -12,6 +12,7 @@ class OrderModel {
     this.paymentRef,
     this.note,
     required this.createdAt,
+    this.pickupAt,
     this.items = const [],
     this.storeName,
     this.customerName,
@@ -26,6 +27,7 @@ class OrderModel {
   final String? paymentRef;
   final String? note;
   final DateTime createdAt;
+  final DateTime? pickupAt;
   final List<OrderItemModel> items;
   final String? storeName; // populated from join
   final String? customerName; // populated from join
@@ -50,6 +52,9 @@ class OrderModel {
       paymentRef: json['payment_ref'] as String?,
       note: json['note'] as String?,
       createdAt: DateTime.parse(json['created_at'] as String),
+      pickupAt: json['pickup_at'] == null
+          ? null
+          : DateTime.parse(json['pickup_at'] as String),
       items: itemsJson
           .map((e) => OrderItemModel.fromJson(e as Map<String, dynamic>))
           .toList(),
@@ -68,6 +73,7 @@ class OrderModel {
         paymentRef: paymentRef,
         note: note,
         createdAt: createdAt,
+        pickupAt: pickupAt,
         items: items,
         storeName: storeName,
         customerName: customerName,

@@ -31,6 +31,8 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     final theme = Theme.of(context);
     final selectedStoreId = cart.selectedStoreId;
     final selectedItems = cart.selectedItems;
+    final pickupSlotsAsync =
+        ref.watch(storePickupSlotsProvider(selectedStoreId ?? ''));
 
     ref.listen(checkoutProvider, (prev, next) {
       if (next.error != null) {
@@ -41,7 +43,21 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
           ),
         );
       }
-      if (next.paymentUrl != null && next.orderId != null && prev?.paymentUrl == null) {
+      if (next.paymentUrl != null &&
+          next.orderId != null &&
+          prev?.paymentUrl == null) {
+        if (next.isRescheduled && next.assignedPickupAt != null) {
+          final assigned = next.assignedPickupAt!.toLocal();
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Quầy bận, đơn của bạn đã được chuyển sang ${DateFormat('HH:mm').format(assigned)}.',
+              ),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+
         context.push('/home/payment', extra: {
           'orderId': next.orderId!,
           'paymentUrl': next.paymentUrl!,
@@ -93,6 +109,70 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
               ),
               onChanged: (v) =>
                   ref.read(checkoutProvider.notifier).setNote(v),
+            ),
+            const SizedBox(height: 16),
+            // Pickup slot
+            _SectionTitle(title: 'Chọn khung giờ nhận'),
+            pickupSlotsAsync.when(
+              loading: () => const SizedBox(
+                height: 52,
+                child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+              ),
+              error: (e, _) => Text(
+                'Không tải được khung giờ nhận. Vui lòng thử lại.',
+                style: TextStyle(color: theme.colorScheme.error),
+              ),
+              data: (slots) {
+                if (slots.isEmpty) {
+                  return Text(
+                    'Quầy đang bận. Hãy thử lại sau hoặc tiếp tục đặt để hệ thống tự phân bổ.',
+                    style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                  );
+                }
+
+                if (checkout.selectedPickupAt == null) {
+                  // Auto-select earliest slot for better UX.
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    if (!mounted) return;
+                    final current = ref.read(checkoutProvider);
+                    if (current.selectedPickupAt == null) {
+                      ref
+                          .read(checkoutProvider.notifier)
+                          .selectPickupAt(slots.first.slotStart);
+                    }
+                  });
+                }
+
+                return SizedBox(
+                  height: 44,
+                  child: ListView.separated(
+                    padding: EdgeInsets.zero,
+                    scrollDirection: Axis.horizontal,
+                    itemCount: slots.length,
+                    separatorBuilder: (context, index) =>
+                        const SizedBox(width: 10),
+                    itemBuilder: (ctx, i) {
+                      final slot = slots[i];
+                      final selected = checkout.selectedPickupAt != null &&
+                          checkout.selectedPickupAt!.toIso8601String() ==
+                              slot.slotStart.toIso8601String();
+
+                      return ChoiceChip(
+                        label: Text(
+                          slot.slotLabel,
+                          style: TextStyle(
+                            fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
+                          ),
+                        ),
+                        selected: selected,
+                        onSelected: (_) => ref
+                            .read(checkoutProvider.notifier)
+                            .selectPickupAt(slot.slotStart),
+                      );
+                    },
+                  ),
+                );
+              },
             ),
             const SizedBox(height: 16),
             // Payment method

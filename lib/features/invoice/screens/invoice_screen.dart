@@ -16,8 +16,13 @@ final _vndFormat = NumberFormat.currency(locale: 'vi_VN', symbol: '₫');
 final _dateFormat = DateFormat('HH:mm - dd/MM/yyyy');
 
 class InvoiceScreen extends ConsumerWidget {
-  const InvoiceScreen({super.key, required this.orderId});
+  const InvoiceScreen({
+    super.key,
+    required this.orderId,
+    this.isStoreFlow = false,
+  });
   final String orderId;
+  final bool isStoreFlow;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -26,26 +31,28 @@ class InvoiceScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Hóa đơn'),
-        automaticallyImplyLeading: false,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.report_outlined),
-            tooltip: 'Báo cáo cửa hàng',
-            onPressed: () {
-              final order = invoiceAsync.valueOrNull;
-              if (order == null) return;
-              context.push(
-                '/home/report/${order.storeId}',
-                extra: {'storeName': order.storeName ?? 'Cửa hàng'},
-              );
-            },
-          ),
-          TextButton.icon(
-            icon: const Icon(Icons.home_outlined),
-            label: const Text('Trang chủ'),
-            onPressed: () => context.go('/home'),
-          ),
-        ],
+        automaticallyImplyLeading: isStoreFlow,
+        actions: isStoreFlow
+            ? null
+            : [
+                IconButton(
+                  icon: const Icon(Icons.report_outlined),
+                  tooltip: 'Báo cáo cửa hàng',
+                  onPressed: () {
+                    final order = invoiceAsync.valueOrNull;
+                    if (order == null) return;
+                    context.push(
+                      '/home/report/${order.storeId}',
+                      extra: {'storeName': order.storeName ?? 'Cửa hàng'},
+                    );
+                  },
+                ),
+                TextButton.icon(
+                  icon: const Icon(Icons.home_outlined),
+                  label: const Text('Trang chủ'),
+                  onPressed: () => context.go('/home'),
+                ),
+              ],
       ),
       body: invoiceAsync.when(
         loading: () => const AppLoadingWidget(message: 'Đang tải hóa đơn...'),
