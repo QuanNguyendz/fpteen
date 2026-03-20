@@ -3,7 +3,6 @@ import 'package:flutter/foundation.dart';
 import 'package:fpteen/core/constants/app_constants.dart';
 import 'package:fpteen/core/errors/app_exception.dart';
 import 'package:fpteen/data/models/user_model.dart';
-import 'package:google_sign_in/google_sign_in.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as sb;
 
 class AuthRepository {
@@ -40,43 +39,25 @@ class AuthRepository {
     }
   }
 
-  // GOOGLE SIGN-IN
+  // GOOGLE SIGN-IN (WEB OAUTH - KHÔNG CẦN SHA-1 CỦA TỪNG MÁY)
   Future<void> signInWithGoogle() async {
     try {
-      const webClientId = AppConstants.googleWebClientId;
-
       debugPrint('🟡 ===== BẮT ĐẦU ĐĂNG NHẬP GOOGLE (WEB OAUTH) =====');
-      debugPrint('🟡 Web Client ID: $webClientId');
 
-      final GoogleSignIn googleSignIn = GoogleSignIn(
-        clientId: webClientId,
-        scopes: ['email', 'profile'],
+      final success = await _supabase.auth.signInWithOAuth(
+        sb.OAuthProvider.google,
+        redirectTo: 'io.supabase.fpteen://login-callback',
+        queryParams: {
+          'access_type': 'offline',
+          'prompt': 'consent',
+        },
       );
 
-      final googleUser = await googleSignIn.signIn();
-
-      if (googleUser == null) {
-        debugPrint('🟡 Người dùng đã hủy đăng nhập');
-        return;
+      if (success) {
+        debugPrint('🟢 ĐÃ MỞ TRÌNH DUYỆT ĐĂNG NHẬP GOOGLE THÀNH CÔNG!');
+      } else {
+        throw 'Không thể mở trình duyệt đăng nhập Google.';
       }
-
-      debugPrint('🟢 ĐĂNG NHẬP GOOGLE THÀNH CÔNG');
-
-      final googleAuth = await googleUser.authentication;
-      final accessToken = googleAuth.accessToken;
-      final idToken = googleAuth.idToken;
-
-      if (idToken == null) {
-        throw 'Không tìm thấy ID Token từ Google. Vui lòng thử lại.';
-      }
-
-      await _supabase.auth.signInWithIdToken(
-        provider: sb.OAuthProvider.google,
-        idToken: idToken,
-        accessToken: accessToken,
-      );
-
-      debugPrint('🟢 ĐĂNG NHẬP SUPABASE THÀNH CÔNG!');
 
     } on PlatformException catch (e) {
       debugPrint('🔴 ===== LỖI PLATFORM EXCEPTION =====');
@@ -137,11 +118,8 @@ class AuthRepository {
     try {
       debugPrint('🟡 Đang đăng xuất...');
 
-      // Đăng xuất khỏi Google
-      await GoogleSignIn().signOut();
-      debugPrint('🟢 Đã đăng xuất Google');
-
-      // Đăng xuất khỏi Supabase
+      // Bỏ qua đăng xuất Google vì xử lý qua trình duyệt
+      // Chỉ đăng xuất khỏi Supabase
       await _supabase.auth.signOut();
       debugPrint('🟢 Đã đăng xuất Supabase');
 
