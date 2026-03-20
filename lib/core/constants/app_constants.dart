@@ -8,6 +8,9 @@ class AppConstants {
   // Go to: Supabase Dashboard → Project Settings → API
   static const String supabaseUrl = 'https://cfsazspmdabmmesydunl.supabase.co';
   static const String supabaseAnonKey = 'sb_publishable_ZnvZ8uP_uKbcw4_ngwrmIw_DhEIP7uU';
+  
+  // ── Gemini AI ─────────────────────────────────────────────
+  static const String geminiApiKey = 'AIzaSyA9qvShw-HBqI-5YG_SOXRagZbtu_jMvOA';
 
   // ── Payment ───────────────────────────────────────────────
   // The WebView intercepts navigation to this URL pattern to detect payment completion.

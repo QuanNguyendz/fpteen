@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:fpteen/data/models/menu_item_model.dart';
 import 'package:fpteen/data/models/order_model.dart';
+import 'package:fpteen/features/ai_assistant/screens/ai_assistant_screen.dart';
 import 'package:fpteen/features/admin/screens/admin_dashboard_screen.dart';
 import 'package:fpteen/features/admin/screens/create_store_owner_screen.dart';
 import 'package:fpteen/features/admin/screens/reports_management_screen.dart';
@@ -45,11 +46,19 @@ final routerProvider = Provider<GoRouter>((ref) {
     initialLocation: '/login',
     redirect: (context, state) {
       final auth = ref.read(authNotifierProvider);
+      final loc = state.matchedLocation;
+      final fullUri = state.uri.toString();
 
-      if (auth.isLoading) return null;
+      // Handle Supabase DeepLinks (Host is 'login-callback')
+      final isLoginCallback = fullUri.contains('login-callback');
+
+      // Trong lúc đang tải trạng thái Auth, nếu dính deeplink rỗng path thì chuyển hướng vô trang chờ
+      if (auth.isLoading) {
+        if (loc == '/' || isLoginCallback) return '/login-callback';
+        return null;
+      }
 
       final isAuthenticated = auth.isAuthenticated;
-      final loc = state.matchedLocation;
 
       // Handle Password Recovery Flow
       if (auth.isRecoveringPassword) {
@@ -60,7 +69,9 @@ final routerProvider = Provider<GoRouter>((ref) {
       final isAuthRoute = loc == '/login' ||
           loc == '/register' ||
           loc == '/forgot-password' ||
-          loc == '/reset-password';
+          loc == '/reset-password' ||
+          loc.startsWith('/login-callback') ||
+          isLoginCallback;
 
       // Not authenticated → login
       if (!isAuthenticated && !isAuthRoute) return '/login';
@@ -89,9 +100,20 @@ final routerProvider = Provider<GoRouter>((ref) {
         if (user.isStoreOwner && loc.startsWith('/admin')) return '/canteen';
       }
 
+      // Nếu link là login-callback nhưng chưa auth thì trỏ về dummy route
+      if (isLoginCallback && !isAuthenticated) {
+        return '/login-callback';
+      }
+
       return null;
     },
     routes: [
+      // ── Root Fallback ─────────────────────────────────────────────────────
+      GoRoute(
+        path: '/',
+        redirect: (context, state) => '/login',
+      ),
+
       // ── Auth ─────────────────────────────────────────────────────────────
       GoRoute(
         path: '/login',
@@ -110,6 +132,14 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/reset-password',
         builder: (ctx, state) => const ResetPasswordScreen(),
       ),
+      GoRoute(
+        path: '/login-callback',
+        builder: (ctx, state) => const Scaffold(
+          body: Center(
+            child: CircularProgressIndicator(),
+          ),
+        ),
+      ),
 
       // ── Customer ──────────────────────────────────────────────────────────
       GoRoute(
@@ -117,6 +147,10 @@ final routerProvider = Provider<GoRouter>((ref) {
         pageBuilder: (ctx, state) =>
         const NoTransitionPage(child: HomeScreen()),
         routes: [
+          GoRoute(
+            path: 'ai',
+            builder: (ctx, state) => const AiAssistantScreen(),
+          ),
           GoRoute(
             path: 'store/:storeId',
             builder: (ctx, state) =>
@@ -128,6 +162,7 @@ final routerProvider = Provider<GoRouter>((ref) {
               storeId: state.pathParameters['storeId']!,
             ),
           ),
+
           GoRoute(
             path: 'cart',
             builder: (ctx, state) => const CartScreen(),

@@ -31,6 +31,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         centerTitle: false,
         title: const Text('FPTeen'),
         actions: [
+          // Nút gọi ý AI
+          IconButton(
+            icon: const Icon(Icons.auto_awesome, color: Colors.amber),
+            tooltip: 'Hôm nay ăn gì? (AI)',
+            onPressed: () => context.push('/home/ai'),
+          ),
           // Cart
           if (!cart.isEmpty)
             Stack(

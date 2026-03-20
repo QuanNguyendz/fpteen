@@ -16,7 +16,6 @@ dependencies:
   supabase_flutter: ^2.8.0
 
   # Authentication
-  google_sign_in: ^6.2.2
 
   # State management
   flutter_riverpod: ^2.6.1
@@ -53,6 +52,7 @@ dependencies:
   screenshot: ^3.0.0
   gal: ^2.3.0
   permission_handler: ^11.3.1
+  google_generative_ai: ^0.4.7
 
 dev_dependencies:
   flutter_test:
