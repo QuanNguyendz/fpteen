@@ -2,6 +2,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fpteen/core/constants/app_constants.dart';
 import 'package:fpteen/core/errors/app_exception.dart';
 import 'package:fpteen/data/repositories/order_repository.dart';
+import 'package:fpteen/data/repositories/health_repository.dart';
+import 'package:fpteen/data/repositories/ai_repository.dart';
+import 'package:fpteen/features/health/providers/health_provider.dart';
 import 'package:fpteen/features/auth/providers/auth_provider.dart';
 import 'package:fpteen/features/menu/providers/cart_provider.dart';
 
@@ -77,6 +80,9 @@ class CheckoutNotifier extends StateNotifier<CheckoutState> {
         note: state.note.isEmpty ? null : state.note,
       );
 
+      // [Background Task] - Tự động ném bill lên Gemini lấy Calo
+      _triggerHealthAnalysis(cart.selectedItems.map((i) => i.menuItem.name).toList());
+
       // Step 2: Call create-payment Edge Function
       final supabase = _ref.read(supabaseClientProvider);
       final response = await supabase.functions.invoke(
@@ -137,10 +143,56 @@ class CheckoutNotifier extends StateNotifier<CheckoutState> {
   }
 
   void reset() => state = const CheckoutState();
+
+  /// Tiến trình chạy ngầm phân tích Calo món ăn sau khi chốt đơn
+  void _triggerHealthAnalysis(List<String> itemNames) async {
+    print("========== AI HEALTH TRACKER: START ==========");
+    print("1. Món ăn cần phân tích: $itemNames");
+    try {
+      final supabase = _ref.read(supabaseClientProvider);
+      final userId = supabase.auth.currentUser?.id;
+      if (userId == null) {
+        print("-> LỖI: Không tìm thấy userId.");
+        return;
+      }
+
+      final healthRepo = _ref.read(healthRepositoryProvider);
+      final profile = await healthRepo.getHealthProfile(userId);
+      
+      if (profile == null) {
+        print("-> LỖI: User chưa tạo Health Profile.");
+        return; 
+      }
+      print("2. Profile lấy được: Target ${profile.dailyCalorieTarget} kcal, Goal: ${profile.goal}");
+
+      print("3. Đang gọi API Gemini...");
+      final aiRepo = AiRepository(supabase);
+      final result = await aiRepo.analyzeOrderNutrition(
+        itemNames: itemNames,
+        healthProfile: profile,
+      );
+      print("4. Gemini trả về: $result");
+
+      print("5. Đang lưu database...");
+      await healthRepo.logCalories(
+        userId, 
+        result['calories'] as int, 
+        result['advice'] as String,
+      );
+      print("-> Đã lưu database thành công.");
+
+      // RA LỆNH CHO MÀN HÌNH HOME REFRESH LẠI THẺ SUMMARY ĐỂ LÊN SỐ
+      _ref.invalidate(todayNutritionLogProvider);
+      print("========== AI HEALTH TRACKER: DONE. CỘNG ${result['calories']} CALO ==========");
+    } catch (e, st) {
+      print("========== AI HEALTH TRACKER: FAILED ==========");
+      print("Lỗi Background Health Analysis: $e");
+      print("Stacktrace: $st");
+    }
+  }
 }
 
-final checkoutProvider =
-    StateNotifierProvider.autoDispose<CheckoutNotifier, CheckoutState>((ref) {
+final checkoutProvider = StateNotifierProvider<CheckoutNotifier, CheckoutState>((ref) {
   return CheckoutNotifier(ref);
 });
 

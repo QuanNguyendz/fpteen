@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:fpteen/data/models/menu_item_model.dart';
 import 'package:fpteen/data/models/order_model.dart';
+import 'package:fpteen/features/health/screens/health_profile_screen.dart';
 import 'package:fpteen/features/ai_assistant/screens/ai_assistant_screen.dart';
 import 'package:fpteen/features/admin/screens/admin_dashboard_screen.dart';
 import 'package:fpteen/features/admin/screens/create_store_owner_screen.dart';
@@ -147,6 +148,10 @@ final routerProvider = Provider<GoRouter>((ref) {
         pageBuilder: (ctx, state) =>
         const NoTransitionPage(child: HomeScreen()),
         routes: [
+          GoRoute(
+            path: 'health-profile',
+            builder: (ctx, state) => const HealthProfileScreen(),
+          ),
           GoRoute(
             path: 'ai',
             builder: (ctx, state) => const AiAssistantScreen(),

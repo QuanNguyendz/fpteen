@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fpteen/features/ai_assistant/providers/ai_provider.dart';
 import 'package:fpteen/features/auth/providers/auth_provider.dart';
+import 'package:fpteen/features/health/providers/health_provider.dart';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:fpteen/data/models/menu_item_model.dart';
@@ -287,6 +288,17 @@ class _AiAssistantScreenState extends ConsumerState<AiAssistantScreen> {
   }
 
   Widget _buildWelcomeState(ThemeData theme) {
+    int? remainingKcal;
+    final profileAsync = ref.watch(healthProfileProvider);
+    final logAsync = ref.watch(todayNutritionLogProvider);
+
+    if (profileAsync is AsyncData && profileAsync.value != null) {
+      final target = profileAsync.value!.dailyCalorieTarget;
+      final consumed = logAsync is AsyncData ? (logAsync.value?.consumedCalories ?? 0) : 0;
+      remainingKcal = target - consumed;
+      if (remainingKcal < 0) remainingKcal = 0;
+    }
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -323,6 +335,8 @@ class _AiAssistantScreenState extends ConsumerState<AiAssistantScreen> {
             spacing: 8,
             runSpacing: 8,
             children: [
+              if (remainingKcal != null && remainingKcal > 0)
+                _buildQuickChip('⚖️ Cần nạp $remainingKcal Kcal', 'Phân tích và gợi ý cho tôi món ăn nào có khoảng $remainingKcal Kcal để tôi nạp vừa đủ mục tiêu dinh dưỡng hôm nay.'),
               _buildQuickChip('🔥 Nóng nực', 'Trời đang rất nóng, thèm đồ mát lạnh giải nhiệt'),
               _buildQuickChip('🌧️ Đang mưa', 'Trời đang mưa, thèm đồ ăn ấm bụng và cay cay'),
               _buildQuickChip('🏃 Đang vội', 'Đang vội lên lớp, hãy gợi ý món làm nhanh'),
