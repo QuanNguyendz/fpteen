@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:fpteen/data/models/health_profile_model.dart';
 import 'package:fpteen/core/constants/app_constants.dart';
 import 'package:fpteen/core/errors/app_exception.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
@@ -134,6 +135,72 @@ CHỈ TRẢ VỀ DỮ LIỆU JSON ĐÚNG ĐỊNH DẠNG là một mảng (array)
 
     } catch (e) {
       throw AppException("Lỗi AI: $e");
+    }
+  }
+
+  /// Phân tích lượng calo của đơn hàng thông qua Gemini
+  Future<Map<String, dynamic>> analyzeOrderNutrition({
+    required List<String> itemNames,
+    required HealthProfileModel healthProfile,
+  }) async {
+    try {
+      final itemListStr = itemNames.join(', ');
+      
+      String goalText = 'Giữ dáng';
+      if (healthProfile.goal == 'lose_weight') goalText = 'Giảm cân, giảm mỡ';
+      if (healthProfile.goal == 'gain_muscle') goalText = 'Tăng cơ, tăng cân';
+
+      final prompt = '''
+Dưới đây là thông tin của 1 sinh viên:
+- Mục tiêu: $goalText
+- Trọng lượng: ${healthProfile.weight} kg
+- Cần nạp: ${healthProfile.dailyCalorieTarget} calo/ngày.
+
+Hôm nay sinh viên này vừa mua các món ở căn tin gồm: [$itemListStr].
+Yêu cầu bạn đóng vai chuyên gia dinh dưỡng:
+1. Dự đoán tổng mức Calo trung bình của các món đó (ẩm thực Việt Nam) cộng lại.
+2. Viết một lời khuyên cực kỳ ngắn gọn (dưới 30 từ), xưng hô Bạn - Mình, cảnh báo nếu bữa ăn quá béo/ngọt so với mục tiêu, hoặc khen ngợi nếu chọn đồ tốt.
+
+Bạn bắt buộc trả về chuỗi JSON thuần tuý định dạng sau:
+{
+  "estimated_calories": 850,
+  "health_advice": "Bữa nay hơi nhiều calo nha! Chạy bộ 30p đi!"
+}
+''';
+
+      final content = [Content.text(prompt)];
+      final response = await _model.generateContent(content);
+      
+      final textResponse = response.text;
+      if (textResponse == null || textResponse.isEmpty) {
+        throw Exception("Không nhận được phản hồi từ AI");
+      }
+
+      String jsonStr = textResponse.trim();
+      if (jsonStr.startsWith('```json')) {
+        jsonStr = jsonStr.replaceFirst('```json', '');
+        if (jsonStr.endsWith('```')) {
+           jsonStr = jsonStr.substring(0, jsonStr.length - 3);
+        }
+      } else if (jsonStr.startsWith('```')) {
+        jsonStr = jsonStr.replaceFirst('```', '');
+        if (jsonStr.endsWith('```')) {
+           jsonStr = jsonStr.substring(0, jsonStr.length - 3);
+        }
+      }
+
+      final decoded = jsonDecode(jsonStr.trim()) as Map<String, dynamic>;
+      // Validate the specific keys exist 
+      final estimatedCalories = decoded['estimated_calories'] as int? ?? 0;
+      final advice = decoded['health_advice']?.toString() ?? 'Chúc bạn có một bữa ăn ngon miệng!';
+
+      return {
+        'calories': estimatedCalories,
+        'advice': advice,
+      };
+
+    } catch (e) {
+      throw AppException("Lỗi AI Dinh dưỡng: $e");
     }
   }
 }

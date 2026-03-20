@@ -28,8 +28,10 @@ class OrderHistoryNotifier
     state = const AsyncValue.loading();
     try {
       final orders = await _orderRepo.fetchCustomerOrders(_userId);
+      if (!mounted) return;
       state = AsyncValue.data(orders);
     } catch (e, st) {
+      if (!mounted) return;
       state = AsyncValue.error(e, st);
     }
   }

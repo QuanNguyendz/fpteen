@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:fpteen/data/models/store_model.dart';
 import 'package:fpteen/features/auth/providers/auth_provider.dart';
 import 'package:fpteen/features/home/providers/stores_provider.dart';
+import 'package:fpteen/features/health/screens/health_summary_card.dart';
 import 'package:fpteen/features/menu/providers/cart_provider.dart';
 import 'package:fpteen/shared/widgets/app_error_widget.dart';
 import 'package:fpteen/shared/widgets/empty_state_widget.dart';
@@ -125,6 +126,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               ],
             ),
           ),
+          const HealthSummaryCard(), // <-- [MỚI] THẺ Y TẾ AI
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Text(
@@ -155,28 +157,28 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       ref.read(activeStoresProvider.notifier).refresh(),
                   child: _isGridView
                       ? GridView.builder(
-                          padding:
-                              const EdgeInsets.fromLTRB(16, 0, 16, 24),
-                          gridDelegate:
-                              const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 3,
-                            mainAxisSpacing: 12,
-                            crossAxisSpacing: 12,
-                            childAspectRatio: 0.75,
-                          ),
-                          itemCount: stores.length,
-                          itemBuilder: (ctx, i) =>
-                              _StoreGridCard(store: stores[i]),
-                        )
+                    padding:
+                    const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                    gridDelegate:
+                    const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 3,
+                      mainAxisSpacing: 12,
+                      crossAxisSpacing: 12,
+                      childAspectRatio: 0.75,
+                    ),
+                    itemCount: stores.length,
+                    itemBuilder: (ctx, i) =>
+                        _StoreGridCard(store: stores[i]),
+                  )
                       : ListView.separated(
-                          padding:
-                              const EdgeInsets.fromLTRB(16, 0, 16, 24),
-                          itemCount: stores.length,
-                          separatorBuilder: (_, _) =>
-                              const SizedBox(height: 12),
-                          itemBuilder: (ctx, i) =>
-                              _StoreCard(store: stores[i]),
-                        ),
+                    padding:
+                    const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                    itemCount: stores.length,
+                    separatorBuilder: (_, _) =>
+                    const SizedBox(height: 12),
+                    itemBuilder: (ctx, i) =>
+                        _StoreCard(store: stores[i]),
+                  ),
                 );
               },
             ),
@@ -205,16 +207,16 @@ class _StoreCard extends StatelessWidget {
           children: [
             ClipRRect(
               borderRadius:
-                  const BorderRadius.vertical(top: Radius.circular(16)),
+              const BorderRadius.vertical(top: Radius.circular(16)),
               child: store.logoUrl != null
                   ? CachedNetworkImage(
-                      imageUrl: store.logoUrl!,
-                      height: 160,
-                      width: double.infinity,
-                      fit: BoxFit.cover,
-                      placeholder: (_, _) => _PlaceholderImage(),
-                      errorWidget: (_, _, _) => _PlaceholderImage(),
-                    )
+                imageUrl: store.logoUrl!,
+                height: 160,
+                width: double.infinity,
+                fit: BoxFit.cover,
+                placeholder: (_, _) => _PlaceholderImage(),
+                errorWidget: (_, _, _) => _PlaceholderImage(),
+              )
                   : _PlaceholderImage(),
             ),
             Padding(
@@ -314,10 +316,10 @@ class _StoreGridCard extends StatelessWidget {
               borderRadius: BorderRadius.circular(16),
               child: store.logoUrl != null
                   ? CachedNetworkImage(
-                      imageUrl: store.logoUrl!,
-                      width: double.infinity,
-                      fit: BoxFit.cover,
-                    )
+                imageUrl: store.logoUrl!,
+                width: double.infinity,
+                fit: BoxFit.cover,
+              )
                   : _PlaceholderImage(),
             ),
           ),
